@@ -1,22 +1,17 @@
-﻿// agent-honeypot — Capture bus abstraction (NATS JetStream interface, lab = file fallback)
-// Production: set HONEYPOT_NATS_URL (e.g. nats://nats:4222) and install `nats` package.
-// Lab tier: publish() appends to capture/bus/bus.jsonl so Phase 2 consumers can be tested
-// without a running NATS cluster. Switching to real NATS is a one-line env change.
+﻿// Event bus abstraction: NATS JetStream when configured, JSONL file fallback otherwise.
+// Events are never dropped — a failed NATS publish falls back to file.
 
 import { appendFileSync, mkdirSync } from 'node:fs';
-import { dirname, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { PATHS, ensureDataDir } from '../paths.mjs';
 
-const here = dirname(fileURLToPath(import.meta.url));
-const FALLBACK = resolve(here, 'bus.jsonl');
-mkdirSync(dirname(FALLBACK), { recursive: true });
+ensureDataDir();
 
 let natsClient = null;
 
 export async function publish(subject, payload) {
-  const url = process.env.HONEYPOT_NATS_URL;
+  const url = process.env.AGENT_HONEYPOT_NATS_URL;
   if (!url) {
-    appendFileSync(FALLBACK, JSON.stringify({ ts: new Date().toISOString(), subject, payload }) + '\n');
+    appendFileSync(PATHS.bus, JSON.stringify({ ts: new Date().toISOString(), subject, payload }) + '\n');
     return { via: 'file', subject };
   }
   try {
@@ -24,16 +19,16 @@ export async function publish(subject, payload) {
       const { connect } = await import('nats');
       natsClient = await connect({ servers: url });
     }
-    const sc = natsClient.jetstream ? natsClient.jetstream() : natsClient;
-    // JetStream publish if available, else core publish
-    if (sc.publish) await sc.publish(subject, JSON.stringify(payload));
+    const js = natsClient.jetstream ? natsClient.jetstream() : natsClient;
+    if (js.publish) await js.publish(subject, JSON.stringify(payload));
     else natsClient.publish(subject, JSON.stringify(payload));
     return { via: 'nats', subject };
   } catch (e) {
-    // Fallback to file on NATS failure — never drop a capture event
-    appendFileSync(FALLBACK, JSON.stringify({ ts: new Date().toISOString(), subject, payload, nats_error: String(e).slice(0, 200) }) + '\n');
+    appendFileSync(PATHS.bus, JSON.stringify({ ts: new Date().toISOString(), subject, payload, nats_error: String(e).slice(0, 200) }) + '\n');
     return { via: 'file-fallback', subject, error: String(e).slice(0, 200) };
   }
 }
 
-export function busPath() { return FALLBACK; }
+export function busPath() {
+  return PATHS.bus;
+}

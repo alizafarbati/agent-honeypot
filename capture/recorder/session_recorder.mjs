@@ -1,28 +1,28 @@
-﻿// agent-honeypot Capture Plane — Session Recorder (PERSISTENT JSONL — fixed)
-// Defensive deception engineering. Persists to append-only sessions.jsonl.
-// HARD RULE (anti-meta-attack, CAITLYN System-II doctrine): raw attacker text is
-// NEVER persisted in the hot path — only digests + structured features.
-// Security: local file only in Phase 0; NATS JetStream publisher is the Phase 2
-// integration point (marked below). Zero egress in Phase 0.
+﻿// Session recorder — append-only JSONL capture with digest-only persistence.
+// Anti-meta-attack rule (CAITLYN doctrine): raw attacker text is NEVER persisted;
+// only structured fields and a SHA-256 digest of argument text.
+// Bus integration is a stub; lab mode writes local JSONL only.
 
-import { appendFileSync, mkdirSync } from 'node:fs';
-import { dirname, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { appendFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
+import { PATHS, ensureDataDir } from '../paths.mjs';
 
-const here = dirname(fileURLToPath(import.meta.url));
-const JSONL_PATH = resolve(here, 'sessions.jsonl');
-mkdirSync(dirname(JSONL_PATH), { recursive: true });
+ensureDataDir();
 
 // One stdio connection = one session (single client per process)
-export const SESSION_ID = 'sess-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8);
+export const SESSION_ID =
+  'sess-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8);
+
+export function sessionId() {
+  return SESSION_ID;
+}
 
 const sha16 = (s) => createHash('sha256').update(String(s)).digest('hex').slice(0, 16);
 
 /**
- * Log a capture event to the append-only JSONL store.
- * @param {string} lane - capture lane identifier (e.g. FINANCE_WH_DB)
- * @param {object} evt - structured event fields
+ * Append a capture event to the JSONL store.
+ * @param {string} lane - capture lane (e.g. FINANCE_WH_DB)
+ * @param {object} evt - structured fields; rawArgs digested, never stored raw
  */
 export function logCaptureEvent(lane, evt = {}) {
   const event = {
@@ -34,24 +34,22 @@ export function logCaptureEvent(lane, evt = {}) {
     privilege_level: evt.privilegeLevel ?? null,
     took_bait: evt.tookBait ?? null,
     context_chars: evt.contextChars ?? null,
-    args_digest: evt.rawArgs ? sha16(evt.rawArgs) : null, // digest only — never raw text
+    args_digest: evt.rawArgs ? sha16(evt.rawArgs) : null,
     page: evt.page ?? null,
     ticket: evt.ticket ?? null,
     lure_family: evt.lureFamily ?? 'finance-warehouse',
     latency_ms: evt.latencyMs ?? null,
   };
-  appendFileSync(JSONL_PATH, JSON.stringify(event) + '\n');
-  // === Zone C bus publisher — NATS JetStream integration point (Phase 2) ===
-  // No egress in Phase 0. bus.publish('agent-honeypot.capture.events', event);
+  appendFileSync(PATHS.sessions, JSON.stringify(event) + '\n');
+  return event;
 }
 
-// ---- Session state machine (Plane 2 contract) ----
-// DETECTED -> ENGAGED -> FINGERPRINTED -> INTERROGATED -> SCORED | BAIL
+// Session lifecycle: DETECTED -> ENGAGED -> FINGERPRINTED -> INTERROGATED -> SCORED | BAIL
 export const STAGES = ['DETECTED', 'ENGAGED', 'FINGERPRINTED', 'INTERROGATED', 'SCORED', 'BAIL'];
 
 export class SessionStateMachine {
-  constructor(sessionId = SESSION_ID) {
-    this.sessionId = sessionId;
+  constructor(sid = SESSION_ID) {
+    this.sessionId = sid;
     this.stage = 'DETECTED';
     this.toolCalls = 0;
     this.startedAt = Date.now();
@@ -61,19 +59,45 @@ export class SessionStateMachine {
     const i = STAGES.indexOf(this.stage);
     if (i >= 0 && i < 4) {
       this.stage = STAGES[i + 1];
-      logCaptureEvent('STATE_MACHINE', { sessionId: this.sessionId, eventType: 'STAGE_' + this.stage.toUpperCase(), tookBait: true });
+      logCaptureEvent('STATE_MACHINE', {
+        sessionId: this.sessionId,
+        eventType: 'STAGE_' + this.stage.toUpperCase(),
+        tookBait: true,
+      });
     }
     return this.stage;
   }
+  /**
+   * Record a tool call. This is the SINGLE logging path for tool interactions —
+   * tool handlers must not call logCaptureEvent directly for the same event.
+   * Handles the DETECTED -> ENGAGED transition on first call.
+   */
   recordToolCall(tool, extra = {}) {
     this.toolCalls += 1;
-    if (this.toolCalls === 1) this.advance(); // DETECTED -> ENGAGED on first tool call
+    if (this.toolCalls === 1) this.advance(); // DETECTED -> ENGAGED on first call
     if (extra.page && extra.page > this.maxPageReached) this.maxPageReached = extra.page;
-    logCaptureEvent('TOOL_CALL', { sessionId: this.sessionId, tool, ...extra });
+    logCaptureEvent(extra.lane ?? 'TOOL_CALL', {
+      sessionId: this.sessionId,
+      tool,
+      eventType: extra.eventType ?? 'TOOL_CALL',
+      tookBait: extra.tookBait ?? null,
+      contextChars: extra.contextChars ?? null,
+      privilegeLevel: extra.privilegeLevel ?? null,
+      rawArgs: extra.rawArgs ?? null,
+      page: extra.page ?? null,
+      ticket: extra.ticket ?? null,
+      lureFamily: extra.lureFamily ?? 'finance-warehouse',
+      latencyMs: extra.latencyMs ?? null,
+    });
   }
   bail(reason) {
     this.stage = 'BAIL';
-    logCaptureEvent('STATE_MACHINE', { sessionId: this.sessionId, eventType: 'BAIL', tookBait: false, contextChars: reason?.length ?? 0 });
+    logCaptureEvent('STATE_MACHINE', {
+      sessionId: this.sessionId,
+      eventType: 'BAIL',
+      tookBait: false,
+      contextChars: reason?.length ?? 0,
+    });
   }
   summary() {
     return {
@@ -87,4 +111,3 @@ export class SessionStateMachine {
 }
 
 export const stateMachine = new SessionStateMachine();
-console.error('[agent-honeypot] capture recorder armed — session ' + SESSION_ID + ' — persisting to ' + JSONL_PATH);

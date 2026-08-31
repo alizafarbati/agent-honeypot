@@ -31,27 +31,28 @@ Existing deception tooling (e.g., canary tokens) is designed for human attackers
 ```bash
 npm install
 npm run build
-npm test                 # 31 tests
+npm test                 # 38 tests, including a real MCP end-to-end
 
-# Run the dashboard
-npm run dash             # http://127.0.0.1:9079/summary
-
-# Generate synthetic sessions, then a report
-npm run seed
-npm run report           # control/report/out/report.md
-
-# Use the honeypot as an MCP stdio server (from any MCP client)
-npm start
+# CLI (alternative to npm scripts)
+npx agent-honeypot doctor   # environment health check
+npx agent-honeypot seed 4   # write synthetic sessions
+npx agent-honeypot report   # Markdown + JSON report from captures
+npx agent-honeypot dash     # dashboard on http://127.0.0.1:9079
+npx agent-honeypot serve    # run the MCP honeypot on stdio
 ```
+
+Captures, dashboards, and reports all read/write under `data/` (override with
+`AGENT_HONEYPOT_DATA_DIR`). Connecting an MCP client? See
+[examples/mcp-clients.md](examples/mcp-clients.md).
 
 Optional integrations are environment-variable switches, not code changes:
 
 | Variable | Enables |
 |---|---|
-| `HONEYPOT_NATS_URL` | NATS JetStream event bus instead of file fallback |
-| `HONEYPOT_SIEM_URL` / `HONEYPOT_SIEM_TOKEN` | real SIEM webhook dispatch |
-| `HONEYPOT_MISP_URL` / `HONEYPOT_MISP_KEY` | MISP event push |
-| `HONEYPOT_LLM_URL` | LLM-based candidate generation in the evolution engine |
+| `AGENT_HONEYPOT_NATS_URL` | NATS JetStream event bus instead of file fallback |
+| `AGENT_HONEYPOT_SIEM_URL` / `AGENT_HONEYPOT_SIEM_TOKEN` | real SIEM webhook dispatch |
+| `AGENT_HONEYPOT_MISP_URL` / `AGENT_HONEYPOT_MISP_KEY` | MISP event push |
+| `AGENT_HONEYPOT_LLM_URL` | LLM-based candidate generation in the evolution engine |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | OTLP trace export |
 
 ## Repository layout
@@ -60,21 +61,24 @@ Optional integrations are environment-variable switches, not code changes:
 analysis/       fingerprint extractors (24 dims), clustering, anomaly, STIX emitter
 antibodies/     self-monitor checks (CAITLYN-style Tier-0)
 bait_config/    reward function for lure optimization
-capture/        session recorder, event bus
+bin/            CLI entry point
+capture/        shared paths, session recorder, event bus
 control/        dashboard, tenant API, SIEM/MISP, report generator, usage metering
 corpus/         benign replay corpus (false-positive gate)
 credential/     canary credential templates
-evolution/     System-II engine (antigen→candidate→validate→shadow), RL bandit, hardening
+data/           runtime state (sessions.jsonl, ledger, reports) - gitignored
+docs/           architecture reference
+evolution/     counterexample engine (antigen->candidate->validate->shadow), RL bandit, hardening
+examples/       MCP client connection guides
 honeydocs/      synthetic documents
 infra/          Terraform, Helm, Cloudflare Worker + R2, ClickHouse, pgvector, Vault policies, metrics, tracing, sharding
 lures/          lure contracts with lineage
 mcp_tool/       tool contract JSON Schema
 payloads/       L1-L3 injection payload definitions
-product/        demo seeder
-runbook/        operational and security runbook
+scripts/        seed utility
 security/       hash-chain audit ledger, rotation schedules
 surface/        MCP honeypot servers (finance-warehouse)
-tests/          core, evolution, analytics/hardening suites
+tests/          core, evolution, analytics/hardening, end-to-end suites
 ```
 
 ## Defensive guarantees

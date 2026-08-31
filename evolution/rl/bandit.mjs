@@ -1,14 +1,12 @@
-﻿// agent-honeypot Phase 3 — Thompson Sampling Bandit (lure rotation)
-// Lab tier: Beta-Bernoulli Thompson sampling over lure variants. Persists to evolution/bandit_state.json.
-// Production: swap store to Postgres/Redis; algorithm unchanged.
+﻿// Thompson-sampling bandit for lure variant rotation. Beta-Bernoulli posterior per
+// variant; state persists across restarts. Swap the store for Redis/Postgres in
+// multi-node deployments; the algorithm is unchanged.
 
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
-import { resolve, dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { readFileSync, writeFileSync, existsSync } from 'node:fs';
+import { PATHS, ensureDataDir } from '../../capture/paths.mjs';
 
-const here = dirname(fileURLToPath(import.meta.url));
-const STATE = resolve(here, 'bandit_state.json');
-mkdirSync(dirname(STATE), { recursive: true });
+ensureDataDir();
+const STATE = PATHS.bandit;
 
 function betaSample(alpha, beta) {
   // Marsaglia method via gamma sampling (simple, sufficient for lab)

@@ -1,11 +1,14 @@
-node_modules/
+﻿node_modules/
 dist/
 *.log
 .env
 .env.*
 !.env.example
 
-# runtime state
+# runtime state (unified data dir)
+data/
+
+# legacy runtime-state locations (kept for safety)
 **/sessions.jsonl
 **/bandit_state.json
 **/tenants.json
@@ -14,9 +17,10 @@ dist/
 **/bus.jsonl
 **/misp_out.jsonl
 **/deliveries.jsonl
+**/siem_deliveries.jsonl
+**/audit_ledger.jsonl
 **/r2_local/
 control/report/out/
-security/audit/ledger.jsonl
 
 # OS
 Thumbs.db

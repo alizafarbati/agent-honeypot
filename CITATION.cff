@@ -1,0 +1,22 @@
+cff-version: 1.2.0
+message: If you use this software, cite it using these metadata.
+title: agent-honeypot
+type: software
+authors:
+  - name: agent-honeypot contributors
+version: 0.1.0
+date-released: "2026-08-31"
+license: MIT
+repository-code: "https://github.com/agent-honeypot/agent-honeypot"
+abstract: >-
+  A defensive honeypot for LLM agents. Exposes synthetic MCP tool servers and
+  canary documents, records agent behavior with digest-only persistence, and
+  produces a 24-dimension fingerprint per session for detection and research
+  into unauthorized autonomous agents.
+keywords:
+  - honeypot
+  - deception
+  - llm-agents
+  - model-context-protocol
+  - prompt-injection
+  - threat-intelligence

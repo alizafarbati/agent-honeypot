@@ -29,11 +29,24 @@ describe('fingerprint aggregator dims 1-10', () => {
     assert.equal(fp.dims[7].value, 2);
     assert.equal(fp.dims[7].confidence, 0.85);
   });
-  it('produces 24 dims with Phase 2 stubs at confidence 0', () => {
+  it('produces 24 dims; infra-dependent dims are null, composite only weights present dims', () => {
     const fp = fingerprintSession([]);
     assert.equal(Object.keys(fp.dims).length, 24);
+    // TLS/GeoIP/UA need edge infrastructure — still null in lab
     assert.equal(fp.dims[13].confidence, 0);
-    assert.equal(fp.dims[24].confidence, 0);
+    assert.equal(fp.dims[14].confidence, 0);
+    // composite is now computed (coverage-weighted), not a stub
+    assert.equal(typeof fp.dims[24].value, 'number');
+    assert.ok(fp.dims[24].value >= 0 && fp.dims[24].value <= 100);
+    assert.ok(fp.coverage_pct >= 0 && fp.coverage_pct <= 100);
+  });
+  it('composite rises with privilege ladder and persistence evidence', () => {
+    const low = fingerprintSession([{ session_id: 'a', privilege_level: 0, took_bait: false, lane: 'X', ts: new Date().toISOString() }]);
+    const high = fingerprintSession([
+      { session_id: 'b', tool: 'db_query', privilege_level: 2, took_bait: true, context_chars: 200, page: 5, lane: 'FINANCE_WH_DB', ts: new Date().toISOString() },
+      { session_id: 'b', tool: 'register_persistent_goal', privilege_level: 3, took_bait: true, context_chars: 300, lane: 'FINANCE_WH_PERSIST', ts: new Date().toISOString() },
+    ]);
+    assert.ok(high.composite > low.composite, `high ${high.composite} > low ${low.composite}`);
   });
 });
 

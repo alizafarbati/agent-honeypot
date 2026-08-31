@@ -2,20 +2,17 @@
 // Multi-tenant isolation: filesystem + logical partitions. Defensive: tenant data never crosses.
 // Lab: JSON file at control/tenant/tenants.json. Enterprise: Postgres row-level security.
 
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
-import { resolve, dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { readFileSync, writeFileSync, existsSync } from 'node:fs';
+import { PATHS, ensureDataDir } from '../../capture/paths.mjs';
 import { createHash } from 'node:crypto';
 
-const here = dirname(fileURLToPath(import.meta.url));
-const STORE = resolve(here, 'tenants.json');
-mkdirSync(dirname(STORE), { recursive: true });
+ensureDataDir();
 
 function load() {
-  if (!existsSync(STORE)) return { tenants: {} };
-  try { return JSON.parse(readFileSync(STORE, 'utf8')); } catch { return { tenants: {} }; }
+  if (!existsSync(PATHS.tenants)) return { tenants: {} };
+  try { return JSON.parse(readFileSync(PATHS.tenants, 'utf8')); } catch { return { tenants: {} }; }
 }
-function save(doc) { writeFileSync(STORE, JSON.stringify(doc, null, 2)); }
+function save(doc) { writeFileSync(PATHS.tenants, JSON.stringify(doc, null, 2)); }
 
 export function createTenant({ id, name, plan = 'lab' }) {
   const doc = load();

@@ -1,23 +1,22 @@
-﻿// agent-honeypot Phase 3 — Promoter + Lineage (shadow → live)
-// Manages shadow deployment lifecycle, lineage.yaml updates, and rollback triggers.
-// Defensive: shadow requires min_days + min_sessions + all gates; human approval gate is explicit.
+﻿// Promoter + lineage: manages the shadow -> live lifecycle for lure candidates.
+// Shadow requires min duration, min session volume, all validation gates, and
+// an explicit human approval. Rollback triggers on capture-rate drop or FP budget breach.
 
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
-import { resolve, dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
-const here = dirname(fileURLToPath(import.meta.url));
-const LINEAGE = resolve(here, '../lineage/lineage.yaml');
+import { PATHS, ensureDataDir } from '../../capture/paths.mjs';
+
+ensureDataDir();
 
 function loadLineage() {
-  if (!existsSync(LINEAGE)) return { lineage: [], gates: {} };
-  const raw = readFileSync(LINEAGE, 'utf8');
-  // lineage.yaml is simple — keep as raw text + JSON fallback, no yaml dep required
-  try { return JSON.parse(raw); } catch { return { lineage: [], gates: {}, _raw: raw.slice(0, 500) }; }
+  if (!existsSync(PATHS.lineage)) return { lineage: [] };
+  try {
+    return JSON.parse(readFileSync(PATHS.lineage, 'utf8'));
+  } catch {
+    return { lineage: [] };
+  }
 }
 function saveLineage(doc) {
-  // Preserve YAML file shape by appending JSON entry as comment-safe — lab tier writes JSON sidecar
-  const sidecar = resolve(here, '../lineage/lineage.json');
-  writeFileSync(sidecar, JSON.stringify(doc, null, 2));
+  writeFileSync(PATHS.lineage, JSON.stringify(doc, null, 2));
 }
 
 export function promoteToShadow(candidate, { lineageDoc } = {}) {
@@ -41,15 +40,16 @@ export function promoteToShadow(candidate, { lineageDoc } = {}) {
 }
 
 export function canPromoteToLive(lineageId, { sessionsInShadow = 0, daysInShadow = 0, gatesPass = false } = {}) {
-  const reasons = [];
-  if (sessionsInShadow < 50) reasons.push(`sessions ${sessionsInShadow}/50`);
-  if (daysInShadow < 7) reasons.push(`days ${daysInShadow}/7`);
-  if (!gatesPass) reasons.push('gates not all pass (tier0 + benign + anti_fingerprint)');
-  // human approval is always required per lineage.yaml gates.promote
-  reasons.push('human_approval_required');
-  if (reasons.length > 1) return { can: false, reasons }; // >1 because human_approval is always present
-  // In lab, with mocked gatesPass, this still requires human — return blocked with single reason
-  return { can: false, reasons, note: 'lab: human gate blocks auto-promote by design' };
+  // Human approval is always required — this function reports readiness, it never auto-promotes.
+  const blockers = [];
+  if (sessionsInShadow < 50) blockers.push(`sessions_in_shadow ${sessionsInShadow}/50`);
+  if (daysInShadow < 7) blockers.push(`days_in_shadow ${daysInShadow}/7`);
+  if (!gatesPass) blockers.push('validation gates not all passing (tier0 + benign_fp + anti_fingerprint)');
+  return {
+    lineage_id: lineageId,
+    ready_for_human_approval: blockers.length === 0,
+    blockers,
+  };
 }
 
 export function rollbackIfNeeded({ captureRateDropPct = 0, benignFpPct = 0 }) {

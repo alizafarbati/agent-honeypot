@@ -1,16 +1,13 @@
 ﻿// agent-honeypot Phase 10 — Billing Meter ()
 // Lab: file counters. Enterprise: Stripe metered billing via API.
 
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
-import { resolve, dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { readFileSync, writeFileSync, existsSync } from 'node:fs';
+import { PATHS, ensureDataDir } from '../../capture/paths.mjs';
 
-const here = dirname(fileURLToPath(import.meta.url));
-const STORE = resolve(here, 'usage.json');
-mkdirSync(dirname(STORE), { recursive: true });
+ensureDataDir();
 
-function load() { if (!existsSync(STORE)) return {}; try { return JSON.parse(readFileSync(STORE, 'utf8')); } catch { return {}; } }
-function save(d) { writeFileSync(STORE, JSON.stringify(d, null, 2)); }
+function load() { if (!existsSync(PATHS.usage)) return {}; try { return JSON.parse(readFileSync(PATHS.usage, 'utf8')); } catch { return {}; } }
+function save(d) { writeFileSync(PATHS.usage, JSON.stringify(d, null, 2)); }
 
 export function meter(tenantId, { events = 1, stixBundles = 0, siemDispatches = 0 } = {}) {
   const d = load();

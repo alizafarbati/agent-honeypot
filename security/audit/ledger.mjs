@@ -1,15 +1,13 @@
-﻿// agent-honeypot Phase 9 — Immutable Audit Ledger (hash chain, )
-// Append-only ledger: each entry hashes prev entry. No blockchain — operational simplicity + audit integrity.
-// Stored at security/audit/ledger.jsonl (lab). Enterprise: mirrored to WORM R2 with object lock.
+﻿// Append-only audit ledger with a SHA-256 hash chain: each entry commits the
+// previous entry's hash, so any tampering is detectable by verifyLedger().
+// Deliberately not a blockchain — single-writer, operational simplicity, verifiable.
 
 import { createHash } from 'node:crypto';
-import { appendFileSync, readFileSync, existsSync, mkdirSync } from 'node:fs';
-import { resolve, dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { appendFileSync, readFileSync, existsSync } from 'node:fs';
+import { PATHS, ensureDataDir } from '../../capture/paths.mjs';
 
-const here = dirname(fileURLToPath(import.meta.url));
-const LEDGER = resolve(here, 'ledger.jsonl');
-mkdirSync(dirname(LEDGER), { recursive: true });
+ensureDataDir();
+const LEDGER = PATHS.ledger;
 
 function hash(obj) { return createHash('sha256').update(JSON.stringify(obj)).digest('hex'); }
 
