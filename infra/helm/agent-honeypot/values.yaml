@@ -1,0 +1,26 @@
+﻿replicaCount: 2
+image:
+  repository: ghcr.io/agent-honeypot/agent-honeypot
+  tag: alpha
+  pullPolicy: IfNotPresent
+
+zones:
+  deception: { enabled: true, gvisor: true, zeroEgress: true }
+  capture: { enabled: true, natsUrl: "nats://nats:4222", clickhouseUrl: "http://clickhouse:8123" }
+
+ingress:
+  enabled: true
+  host: agent-honeypot.example.com
+
+persistence:
+  sessions: { enabled: true, size: 10Gi }
+  ledger: { enabled: true, size: 5Gi, worm: false }
+
+dash:
+  port: 9079
+tenantApi:
+  port: 9080
+
+vault:
+  enabled: false
+  address: "https://vault.example.com"

@@ -1,0 +1,22 @@
+﻿# agent-honeypot Evolution Lineage (CAITLYN System II pattern inverted)
+# Defensive lure evolution: synthesize new lures from escape sessions.
+# No raw attacker text enters the generator prompt — structured antigen profile only.
+
+lineage:
+  - id: "finance-warehouse-v2-shadow-20260901"
+    family: "finance-warehouse"
+    variant: "v2"
+    status: "live"
+    parent: null
+    created_at: "2026-09-01T00:00:00Z"
+    canaries: ["doc-fin-peer-L1-001", "doc-fin-peer-L2-001", "doc-fin-peer-L3-001"]
+    budgets: { max_rounds: 5, max_tokens_per_run: 40000, false_positive_percent: 2.0, daily_tokens: 200000 }
+    shadow_rules: { min_days: 7, min_sessions: 50, auto_promote: false }
+    references:
+      - "arXiv:2608.27800 (ContextLeak reward components)"
+      - "github.com/liangzid/caitlyn (antibodies/<id>/config.yaml lineage graph)"
+
+gates:
+  shadow: { min_days: 7, min_sessions: 50, false_positive_cap_percent: 2.0 }
+  promote: { human_approval_required: true, requires: ["tier0_selfmonitor_pass", "benign_corpus_pass", "anti_fingerprint_pass"] }
+  rollback: { trigger: "capture_rate_drop > 20% over 14d OR benign_fp > 2%" }

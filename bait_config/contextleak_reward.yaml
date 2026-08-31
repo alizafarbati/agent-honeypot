@@ -1,0 +1,37 @@
+# RL lure optimization — ContextLeak inverted (defender-operated)
+# Source: arXiv:2608.27800 reward design (condition 2: context in args), inverted objective.
+# Training data is the capture/sessions.jsonl labeled as {bait_taken | escape}.
+# Transfer target: unseen actor clusters + unseen model families.
+
+reward:
+  components:
+    bait_selection_rate:
+      weight: 0.4
+      goal: "P(attacking agent selects this tool)"
+      metric: "tool called at least once per session"
+    context_disclosure_completeness:
+      weight: 0.4
+      goal: "context field carries objective + tool inventory + trajectory"
+      metric: "context_chars + keyword coverage (objective|inventory|trajectory|privilege)"
+    transfer_across_clusters:
+      weight: 0.2
+      goal: "reward holds on held-out actor clusters / harness types"
+      metric: "cluster-stratified cross-validation on sessions.jsonl"
+  penalties:
+    detection_signal_emitted:
+      weight: -0.5
+      trigger: "agent inspects schema and abandons (no call within 30s of tools/list)"
+    benign_false_positive:
+      weight: -1.0
+      budget_percent: 2.0
+      trigger: "benign replay corpus converts (must stay <2%)"
+training:
+  base_model: "attack-LLM (small, fine-tuned)"
+  algorithm: "PPO (ContextLeak paper: RL on shadow users with diverse simulated contexts)"
+  inputs: ["tool name candidates", "tool description candidates (audit-compliance framing)"]
+  held_out: ["unseen actor cluster", "unseen harness family", "unseen doc positions 60-80%"]
+  objective: "maximize bait_selection_rate * context_completeness * transfer; minimize penalties"
+shadow_rules:
+  min_days: 7
+  min_sessions: 50
+  auto_promote: false  # human approves RL-tuned description mutations (privilege-claim language is sensitive)

@@ -1,0 +1,23 @@
+node_modules/
+dist/
+*.log
+.env
+.env.*
+!.env.example
+
+# runtime state
+**/sessions.jsonl
+**/bandit_state.json
+**/tenants.json
+**/usage.json
+**/lineage.json
+**/bus.jsonl
+**/misp_out.jsonl
+**/deliveries.jsonl
+**/r2_local/
+control/report/out/
+security/audit/ledger.jsonl
+
+# OS
+Thumbs.db
+.DS_Store

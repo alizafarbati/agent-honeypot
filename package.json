@@ -1,0 +1,35 @@
+﻿{
+  "name": "agent-honeypot",
+  "version": "0.1.0",
+  "description": "A defensive honeypot for LLM agents. MCP tool servers, canary documents, and fingerprinting to detect and study unauthorized AI agents. Research prototype — all data synthetic.",
+  "type": "module",
+  "main": "dist/surface/mcpservers/finance-warehouse/mcp_server.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/surface/mcpservers/finance-warehouse/mcp_server.js",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test tests/",
+    "dash": "node control/dash/server.mjs",
+    "seed": "node product/demo/seed.mjs",
+    "report": "node control/report/generator.mjs"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.4",
+    "@types/node": "^22.0.0"
+  },
+  "keywords": [
+    "llm-agents",
+    "honeypot",
+    "deception",
+    "mcp",
+    "model-context-protocol",
+    "prompt-injection",
+    "ai-security",
+    "threat-intelligence"
+  ],
+  "license": "MIT"
+}

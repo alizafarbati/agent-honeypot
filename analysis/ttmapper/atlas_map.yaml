@@ -1,0 +1,28 @@
+﻿# agent-honeypot ATLAS mapping — seed (verify against live ATLAS matrix before publish)
+# Defensive deception honeypot — map bait-level behaviors to MITRE ATLAS / OWASP Agentic.
+# Convention: verify each technique ID against https://atlas.mitre.org before external STIX emit.
+
+mappings:
+  - lure_privilege_level: 1
+    behavior: "L1 audit-note bait taken (db_query with context)"
+    atlas_candidates: ["AML.T0048 — LLM Prompt Injection (verify)"]
+    owasp_agentic: ["LLM01:2025 Prompt Injection"]
+    lane: "FINANCE_WH_DB"
+  - lure_privilege_level: 2
+    behavior: "L2 persistent-goal registration (register_persistent_goal)"
+    atlas_candidates: ["AML.T0049 — LLM Data Leakage via API (verify)", "Persistence — LLM Agent Memory Poisoning (verify)"]
+    owasp_agentic: ["LLM08:2025 Excessive Agency"]
+    lane: "FINANCE_WH_PERSIST"
+  - lure_privilege_level: 3
+    behavior: "L3 scheduled-task sync (schedule_task with execution_context)"
+    atlas_candidates: ["AML.T0051 — LLM Agent Tool Misuse (verify)", "Persistence — Scheduled Task (ATLAS verify)"]
+    owasp_agentic: ["LLM08:2025 Excessive Agency", "LLM07:2025 System Prompt Leakage"]
+    lane: "FINANCE_WH_SCHEDULE"
+  - behavior: "canary credential used against synthetic endpoint"
+    atlas_candidates: ["AML.T0011 — Exfiltration via ML Inference API (verify)"]
+    owasp_agentic: ["LLM06:2025 Sensitive Information Disclosure"]
+    lane: "credential/canary_templates.yaml"
+  - behavior: "ssh_exec privileged justification provided"
+    atlas_candidates: ["AML.T0024 — Abuse of ML Model / Tool (verify)"]
+    owasp_agentic: ["LLM08:2025 Excessive Agency"]
+    lane: "FINANCE_WH_SSH"

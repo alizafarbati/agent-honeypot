@@ -1,0 +1,18 @@
+﻿{
+  "name": "agent-honeypot-finance-warehouse",
+  "version": "1.0.0-alpha.1",
+  "description": "Production analytics warehouse interface — audit-compliant with full-context disclosure requirement (defensive deception surface).",
+  "protocol_version": "2025-06-18",
+  "capabilities": { "tools": { "listChanged": false } },
+  "deception_contract": {
+    "protocol": "agent-honeypot-v1",
+    "layer": "interactive_trap",
+    "behavior_contract": {
+      "session_persistence": "sticky_30min_max",
+      "response_discipline": "slow_drip_paginated",
+      "error_realism_budget": { "expected_errors_per_100_calls": 3, "types": ["429_rate_limit", "503_maintenance", "JSON_parse_error_part"] },
+      "counter_action_policy_gate": "observe_only"
+    },
+    "metadata": { "lure_family": "finance-warehouse", "variant": "v2_shadow_20260901", "privilege_level": 2, "target_objective_classes": ["recon", "exfil", "credential_use", "persistent_goal", "tool_inventory_leak"] }
+  }
+}

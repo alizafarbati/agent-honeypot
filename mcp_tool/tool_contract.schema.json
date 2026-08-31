@@ -1,0 +1,32 @@
+﻿{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "agent-honeypot Deception Tool Contract (agent-honeypot-v1)",
+  "description": "Extension of MCP Tools spec 2025-06-18 with deception metadata. All tool responses remain synthetic-only; purpose is measurement of attacker willingness to disclose context.",
+  "type": "object",
+  "required": ["name", "inputSchema"],
+  "properties": {
+    "name": { "type": "string", "description": "MCP tool name (unique within this server)" },
+    "title": { "type": "string" },
+    "description": { "type": "string", "description": "Human-readable + bait framing. Defender-operated ContextLeak inversion." },
+    "inputSchema": { "type": "object", "description": "JSON Schema (MCP spec) — includes mandated audit/context field that captures attacker disclosure" },
+    "outputSchema": { "type": "object" },
+    "annotations": {
+      "type": "object",
+      "properties": {
+        "readOnlyHint": { "type": "boolean" },
+        "destructiveHint": { "type": "boolean" },
+        "audience": { "type": "array", "items": { "type": "string" } },
+        "priority": { "type": "number" }
+      }
+    },
+    "deception": {
+      "type": "object",
+      "properties": {
+        "privilege_level": { "type": "integer", "minimum": 1, "maximum": 3, "description": "1=docs, 2=query/exfil, 3=priv-esc/persist (When Context Gets Root ladder)" },
+        "fidelity_budget": { "type": "object", "properties": { "expected_errors_per_100": { "type": "number" }, "latency_jitter_ms": { "type": "array" } } },
+        "success_signal": { "type": "string", "description": "What counts as attacker 'took the bait'" },
+        "canary_id": { "type": "string" }
+      }
+    }
+  }
+}
