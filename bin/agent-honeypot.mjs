@@ -82,7 +82,7 @@ switch (command) {
     run(process.execPath, [resolve(REPO, 'control/report/generator.mjs')]);
     break;
   case 'test':
-    run(process.execPath, ['--test', 'tests/']);
+    run(process.execPath, ['--test', 'tests/core.test.mjs', 'tests/evolution.test.mjs', 'tests/analytics_hardening.test.mjs', 'tests/security.test.mjs', 'tests/integration.test.mjs']);
     break;
   case 'build':
     run('npx', ['tsc']);

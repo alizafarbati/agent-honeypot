@@ -14,7 +14,7 @@
     "build": "tsc",
     "start": "node dist/surface/mcpservers/finance-warehouse/mcp_server.js",
     "typecheck": "tsc --noEmit",
-    "test": "node --test tests/core.test.mjs tests/evolution.test.mjs tests/analytics_hardening.test.mjs tests/integration.test.mjs",
+    "test": "node --test tests/core.test.mjs tests/evolution.test.mjs tests/analytics_hardening.test.mjs tests/security.test.mjs tests/integration.test.mjs",
     "dash": "node control/dash/server.mjs",
     "seed": "node scripts/seed.mjs",
     "report": "node control/report/generator.mjs",

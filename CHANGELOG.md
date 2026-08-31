@@ -1,9 +1,9 @@
-# Changelog
+﻿# Changelog
 
 All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows SemVer.
 
-## [0.1.0] — 2026-08-31
+## [0.1.0] â€” 2026-08-31
 
 Initial public prototype.
 
@@ -31,7 +31,7 @@ Initial public prototype.
   policies), Helm chart, Cloudflare Worker + R2 adapter (digest-only at edge),
   ClickHouse and pgvector schemas.
 - CLI (`agent-honeypot serve|dash|seed|report|test|build|doctor`).
-- Test suite: 38 tests including a real stdio end-to-end against the MCP server
+- Test suite: 47 tests including a machine-checked security suite and a real stdio end-to-end against the MCP server
   using the official SDK client.
 
 ### Security

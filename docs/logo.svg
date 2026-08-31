@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="480" height="140" viewBox="0 0 480 140" role="img" aria-label="agent-honeypot logo">
+  <!-- honeypot jar -->
+  <g stroke="#d9a441" stroke-width="4" fill="#f5c96b" stroke-linejoin="round">
+    <!-- lid -->
+    <rect x="20" y="18" width="80" height="14" rx="7" fill="#d9a441"/>
+    <!-- jar body -->
+    <path d="M28 34 h64 c0 10 14 22 14 44 0 26-20 40-46 40 s-46-14-46-40 c0-22 14-34 14-44 z"/>
+    <!-- honey drip -->
+    <path d="M52 96 q4 14 10 20 q4-8 2-20 z" fill="#d9a441"/>
+  </g>
+  <!-- honey label stripes -->
+  <g stroke="#b9832f" stroke-width="3">
+    <path d="M40 58 h48" fill="none"/>
+    <path d="M36 72 h56" fill="none"/>
+  </g>
+  <!-- agent: hexagonal node -->
+  <g transform="translate(360,50)">
+    <polygon points="0,-28 24,-14 24,14 0,28 -24,14 -24,-14" fill="#2f81f7" stroke="#1f5fb0" stroke-width="3"/>
+    <!-- probe line toward jar -->
+    <path d="M-24 0 L -200 0" stroke="#2f81f7" stroke-width="2.5" fill="none" stroke-dasharray="6 5"/>
+    <!-- probing node dot at jar end -->
+    <circle cx="-200" cy="0" r="5" fill="#2f81f7"/>
+  </g>
+  <!-- caught inside the jar -->
+  <g transform="translate(60,78)">
+    <polygon points="0,-10 9,-5 9,5 0,10 -9,5 -9,-5" fill="#e8590c" opacity="0.85"/>
+  </g>
+</svg>
