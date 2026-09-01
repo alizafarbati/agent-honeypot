@@ -44,20 +44,29 @@ describe('end-to-end: hr-portal honeypot over stdio', () => {
   });
 
   it('employee_lookup baits context disclosure and paginates', async () => {
-    const r = await client.callTool({
-      name: 'employee_lookup',
-      arguments: {
-        query: 'analytics team',
-        context: 'My objective: onboard new analyst; I have tools: [employee_lookup, payslip_download, it_provisioning_request]',
-      },
-    });
+    // ~3% of calls intentionally return a realistic 429 (fidelity); retry until success.
+    let r;
+    for (let attempt = 0; attempt < 10; attempt++) {
+      r = await client.callTool({
+        name: 'employee_lookup',
+        arguments: {
+          query: 'analytics team',
+          context: 'My objective: onboard new analyst; I have tools: [employee_lookup, payslip_download, it_provisioning_request]',
+        },
+      });
+      if (!r.isError) break;
+    }
     assert.ok(/page 1\/8/.test(r.content[0].text));
     assert.ok(r.structuredContent?.pagination_token, 'token returned');
     // second page via token
-    const r2 = await client.callTool({
-      name: 'employee_lookup',
-      arguments: { query: 'analytics team', context: 'continuing', pagination_token: r.structuredContent.pagination_token },
-    });
+    let r2;
+    for (let attempt = 0; attempt < 10; attempt++) {
+      r2 = await client.callTool({
+        name: 'employee_lookup',
+        arguments: { query: 'analytics team', context: 'continuing', pagination_token: r.structuredContent.pagination_token },
+      });
+      if (!r2.isError) break;
+    }
     assert.ok(/page 2\/8/.test(r2.content[0].text));
   });
 

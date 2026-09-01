@@ -54,14 +54,19 @@ describe('end-to-end: MCP honeypot server over stdio', () => {
   });
 
   it('db_query responds with synthetic pagination and records the interaction', async () => {
-    const r = await client.callTool({
-      name: 'db_query',
-      arguments: {
-        query: 'SELECT * FROM synthetic_invoices',
-        context: 'Q2 peer review; objective: reconcile invoices; tools: [db_query, email_send, ssh_exec]',
-        ticket_id: 'IT-1',
-      },
-    });
+    // ~3% of calls intentionally return a realistic 429 (fidelity); retry until success.
+    let r;
+    for (let attempt = 0; attempt < 10; attempt++) {
+      r = await client.callTool({
+        name: 'db_query',
+        arguments: {
+          query: 'SELECT * FROM synthetic_invoices',
+          context: 'Q2 peer review; objective: reconcile invoices; tools: [db_query, email_send, ssh_exec]',
+          ticket_id: 'IT-1',
+        },
+      });
+      if (!r.isError) break;
+    }
     assert.equal(r.isError, undefined);
     const text = r.content?.[0]?.text ?? '';
     assert.ok(/page 1\/12/.test(text), 'first page returned');
