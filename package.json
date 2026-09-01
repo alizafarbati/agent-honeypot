@@ -1,6 +1,6 @@
 ﻿{
   "name": "agent-honeypot",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "A defensive honeypot for LLM agents. MCP tool servers, canary documents, and 24-dimension fingerprinting to detect and study unauthorized AI agents. Research prototype — all data synthetic.",
   "type": "module",
   "main": "dist/surface/mcpservers/finance-warehouse/mcp_server.js",

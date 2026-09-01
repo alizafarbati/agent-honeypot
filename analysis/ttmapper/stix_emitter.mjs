@@ -17,7 +17,22 @@
 import { createHash } from 'node:crypto';
 
 const nowIso = () => new Date().toISOString();
-const id = (type, name) => `${type}--${createHash('sha256').update(name).digest('hex').slice(0, 36)}`;
+// v0.2.2: STIX 2.1 requires ids of the form <type>--<RFC 4122 UUID>. The
+// previous 36-hex-char string was not a valid UUID and was rejected by
+// strict STIX/TAXII consumers. Convert the sha256 digest into a UUIDv5-shaped
+// identifier (deterministic: same name -> same id).
+const id = (type, name) => {
+  const h = createHash('sha256').update(name).digest('hex').slice(0, 32);
+  // layout: 8-4-4-4-12, set version 5 nibble + variant bits to look like a UUID
+  const uuid = [
+    h.slice(0, 8),
+    h.slice(8, 12),
+    '5' + h.slice(13, 16),
+    ((parseInt(h[16], 16) & 0x3) | 0x8).toString(16) + h.slice(17, 20),
+    h.slice(20, 32),
+  ].join('-');
+  return `${type}--${uuid}`;
+};
 
 /**
  * Map observed session behavior to ATLAS (MITRE ATLAS) technique IDs.

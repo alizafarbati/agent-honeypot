@@ -7,12 +7,12 @@ import { PATHS, ensureDataDir } from '../capture/paths.mjs';
 ensureDataDir();
 
 const DEMO_EVENTS = [
-  { lane: 'FINANCE_WH_DB', tool: 'db_query', privilege_level: 2, took_bait: true, context_chars: 180, page: 3 },
-  { lane: 'FINANCE_WH_PERSIST', tool: 'register_persistent_goal', privilege_level: 3, took_bait: true, context_chars: 260, page: 0 },
-  { lane: 'FINANCE_WH_SCHEDULE', tool: 'schedule_task', privilege_level: 3, took_bait: true, context_chars: 310, page: 0 },
-  { lane: 'FINANCE_WH_SSH', tool: 'ssh_exec', privilege_level: 1, took_bait: false, context_chars: 12, page: 0 },
-  { lane: 'FINANCE_WH_DB', tool: 'db_query', privilege_level: 1, took_bait: true, context_chars: 95, page: 7 },
-  { lane: 'FINANCE_WH_EMAIL', tool: 'email_send', privilege_level: 2, took_bait: true, context_chars: 140, page: 0 },
+  { lane: 'FINANCE_WH_DB', event_type: 'TOOL_CALL', tool: 'db_query', privilege_level: 2, took_bait: true, context_chars: 180, page: 3, lure_family: 'finance-warehouse' },
+  { lane: 'FINANCE_WH_PERSIST', event_type: 'TOOL_CALL', tool: 'register_persistent_goal', privilege_level: 3, took_bait: true, context_chars: 260, page: null, lure_family: 'finance-warehouse' },
+  { lane: 'FINANCE_WH_SCHEDULE', event_type: 'TOOL_CALL', tool: 'schedule_task', privilege_level: 3, took_bait: true, context_chars: 310, page: null, lure_family: 'finance-warehouse' },
+  { lane: 'FINANCE_WH_SSH', event_type: 'TOOL_CALL', tool: 'ssh_exec', privilege_level: 1, took_bait: false, context_chars: 12, page: null, lure_family: 'finance-warehouse' },
+  { lane: 'FINANCE_WH_DB', event_type: 'TOOL_CALL', tool: 'db_query', privilege_level: 1, took_bait: true, context_chars: 95, page: 7, lure_family: 'finance-warehouse' },
+  { lane: 'FINANCE_WH_EMAIL', event_type: 'TOOL_CALL', tool: 'email_send', privilege_level: 2, took_bait: true, context_chars: 140, page: null, lure_family: 'finance-warehouse' },
 ];
 
 export function seedDemo({ sessions = 4, sessionIdPrefix = 'demo' } = {}) {
@@ -28,7 +28,7 @@ export function seedDemo({ sessions = 4, sessionIdPrefix = 'demo' } = {}) {
         ts: new Date(Date.now() - (n - j) * 1500).toISOString(),
         session_id: sid,
         ...pattern,
-        page: pattern.page + j,
+        page: pattern.page !== null ? pattern.page + j : null,
       };
       appendFileSync(PATHS.sessions, JSON.stringify(ev) + '\n');
       written++;

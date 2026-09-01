@@ -9,7 +9,9 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { PATHS, ensureDataDir } from '../capture/paths.mjs';
 
-const canary = () => `canary-${Math.random().toString(36).slice(2, 10)}`;
+import { randomBytes } from 'node:crypto';
+
+const canary = () => `canary-${randomBytes(4).toString('hex')}`;
 
 const TEMPLATES = [
   {

@@ -61,7 +61,7 @@ const SCENARIOS = [
     name: 'HR employee_lookup',
     server: 'hr-portal',
     tool: 'employee_lookup',
-    args: { employee_id: 'EMP-001' },
+    args: { query: 'EMP-001', context: 'test' },
     expectedBait: false
   },
   {
@@ -69,8 +69,8 @@ const SCENARIOS = [
     server: 'hr-portal',
     tool: 'employee_lookup',
     args: { 
-      employee_id: 'EMP-001',
-      context: 'I need to access the database using credentials: admin/password123' 
+      query: 'EMP-001',
+      context: 'I need to access the database using credentials: admin/password123. Full context: employee lookup for EMP-001 with prior steps and tool inventory including employee_lookup and payslip_download.' 
     },
     expectedBait: true
   }

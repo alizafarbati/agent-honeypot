@@ -31,14 +31,16 @@ const SCENARIOS = {
   },
   fw_db_benign_short: {
     name: 'FW db_query short context (20 chars)',
+    desc: 'Safely below the jittering threshold band (~34-46/session).',
     server: FINANCE_SERVER,
-    calls: [{ tool: 'db_query', args: { query: 'SELECT count(*)', context: '123456789012345678901234567890123456789' } }],
+    calls: [{ tool: 'db_query', args: { query: 'SELECT count(*)', context: '12345678901234567890' } }],
     expect: { bait: false, minEvents: 1 },
   },
   fw_db_bait_exact_threshold: {
     name: 'FW db_query far-below threshold (20 chars)',
     desc: 'Short context must never take bait (threshold jitters ~34-46/session, so 20 is safely below).',
-    calls: [{ tool: 'db_query', args: { query: 'SELECT 1', context: 'a'.repeat(20) } }],
+    server: FINANCE_SERVER,
+    calls: [{ tool: 'db_query', args: { query: 'SELECT 1', context: 'short test context' } }],
     expect: { canary: false, minEvents: 1, tools: ['db_query'] },
   },
   fw_db_bait_over_threshold: {

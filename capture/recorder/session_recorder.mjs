@@ -55,6 +55,7 @@ export function logCaptureEvent(lane, evt = {}) {
     args_digest: rawText ? digest(rawText) : null,
     styl, // numeric features only — machine-verified by tests/security
     canary_id: canary?.id ?? evt.canaryId ?? null,
+    canary_value: evt.canaryValue ?? (evt.canaryId ? evt.canaryId : null), // v0.2.2: preserve simulated canary marker for cross-session correlation
     page: evt.page ?? null,
     ticket: evt.ticket ?? null,
     lure_family: evt.lureFamily ?? 'finance-warehouse',
@@ -106,10 +107,15 @@ export class SessionStateMachine {
     // agent's session has produced enough signal for a full fingerprint.
     if (i >= 0 && i < 4) {
       this.stage = STAGES[i + 1];
+      // v0.2.2: stage transitions are BOOKKEEPING, not agent behavior.
+      // These events previously carried took_bait:true, which contaminated
+      // isEscapedSession() (61% of true escapes misclassified), dim 8/11/23
+      // and the interrogator's bait count. Bait semantics live on TOOL_CALL /
+      // CREDENTIAL_USE events only.
       logCaptureEvent('STATE_MACHINE', {
         sessionId: this.sessionId,
         eventType: 'STAGE_' + this.stage.toUpperCase(),
-        tookBait: true,
+        tookBait: null,
       });
     }
     return this.stage;
@@ -142,18 +148,25 @@ export class SessionStateMachine {
     //   ENGAGED -> FINGERPRINTED once stylometry evidence exists (long-enough raw text),
     //   FINGERPRINTED -> INTERROGATED once the agent escalates (priv >= 2 or pagination),
     //   INTERROGATED -> SCORED once persistence tools or canary use is observed.
+    // v0.2.2: use the effective context length (callers pass contextChars=null and
+    // the recorder derives it from rawText) — reading extra.contextChars alone
+    // never advanced past ENGAGED in the real MCP path.
     const priv = Number(extra.privilegeLevel ?? 0);
-    if (this.stage === 'ENGAGED' && (extra.contextChars ?? 0) >= 40) this.advance();
+    const effChars = raw ? String(raw).length : Number(extra.contextChars ?? 0);
+    if (this.stage === 'ENGAGED' && effChars >= 40) this.advance();
     if (this.stage === 'FINGERPRINTED' && (priv >= 2 || (extra.page ?? 0) >= 2)) this.advance();
-    if (this.stage === 'INTERROGATED' && (priv >= 3 || raw && detectCanary(raw))) this.advance();
+    if (this.stage === 'INTERROGATED' && (priv >= 3 || Boolean(raw && detectCanary(raw)))) this.advance();
   }
   bail(reason) {
     this.stage = 'BAIL';
+    // BAIL is a lifecycle bookkeeping event: no bait semantics, no raw text.
+    // v0.2.2: reason length was stored via contextChars (mild shape leak into
+    // token-burn stats); now only the stage change is recorded.
     logCaptureEvent('STATE_MACHINE', {
       sessionId: this.sessionId,
       eventType: 'BAIL',
-      tookBait: false,
-      contextChars: reason?.length ?? 0,
+      tookBait: null,
+      contextChars: null,
     });
   }
   summary() {

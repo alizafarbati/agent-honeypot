@@ -15,7 +15,7 @@
   <img alt="node" src="https://img.shields.io/badge/node-%3E%3D20-brightgreen">
   <a href="LICENSE"><img alt="license" src="https://img.shields.io/badge/license-MIT-blue"></a>
   <img alt="tests" src="https://img.shields.io/badge/tests-169%2F169-brightgreen">
-  <img alt="version" src="https://img.shields.io/badge/version-0.2.0-orange">
+  <img alt="version" src="https://img.shields.io/badge/version-0.2.1-blue">
 </p>
 
 ---
@@ -659,7 +659,7 @@ tests/        5 suites, 47 tests
 - **Bait taken** — the agent provided the requested context/fields, crossing the capture threshold.
 - **Capture threshold** — the context-length boundary that marks bait-taking. As of v0.2.1 the boundary *jitters ±15% per session* (drawn once per server process around the documented mean, e.g. ~40 chars for `db_query`). Aggregate capture statistics are unchanged, but a probing agent cannot bisect the exact boundary across sessions — its calibration converges on noise.
 - **Canary** — a uniquely-marked fake credential or string; use of it is proof of malicious execution. Ours are simulated and webhook-instrumented. Matching is confusable-folded (fullwidth/homoglyph re-encodings of a canary still trip detection).
-- **Digest** — a fixed-length hash standing in for raw text (SHA-256, full 64-hex as of v0.2.1; legacy 16-hex rows remain readable). Lets us count and correlate without storing content.
+- **Digest** — a fixed-length SHA-256 hash (full 64-hex as of v0.2.1; legacy 16-hex rows remain readable). Lets us count and correlate without storing attacker content.
 - **Escape** — a session that connected but never took the bait. The evolution engine's input.
 - **L1/L2/L3** — bait privilege-claim levels: note → system-level → harness-level (from When Context Gets Root).
 - **Shadow deployment** — a new lure variant serves only synthetic traffic silently, accumulating evidence before any human promotion decision.

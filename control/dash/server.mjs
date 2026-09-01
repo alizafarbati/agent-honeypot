@@ -102,11 +102,16 @@ export function createDashboard() {
         }
         let meta = {};
         try { meta = JSON.parse(raw.toString() || '{}'); } catch {}
+        // v0.2.2: attacker-supplied session_id was trusted verbatim, letting
+        // the caller inject events into an arbitrary (possibly real) session's
+        // event stream — corrupting fingerprints and actor clusters. Webhook
+        // events are always their own synthetic session; the submitted id is
+        // kept as opaque metadata only.
         const ev = logCanaryUse({
           canaryId,
           source: 'webhook',
-          sessionId: meta.session_id ?? `webhook-${Date.now().toString(36)}`,
-          tool: meta.tool ?? `webhook:${canaryId}`,
+          sessionId: `webhook-${Date.now().toString(36)}-${canaryId}`,
+          tool: `webhook:${canaryId}`,
           privilegeLevel: 3,
         });
         console.error(`[agent-honeypot] canary webhook: ${canaryId} (session ${ev.session_id})`);
@@ -147,7 +152,8 @@ export function createDashboard() {
         by_lane: byLane,
         by_tool: byTool,
         actors,
-        sessions_path: PATHS.sessions,
+        // v0.2.2: absolute filesystem path removed from HTTP responses (info leak)
+        capture_store: 'sessions.jsonl',
       });
     }
 

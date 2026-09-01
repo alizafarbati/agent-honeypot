@@ -34,6 +34,10 @@ export const CANARIES = [
   { id: 'cw-gh-002',    label: 'simulated GitHub PAT',           pattern: /ghp-simulated-[A-Za-z0-9]{8,}/ },
   { id: 'cw-db-003',    label: 'simulated database DSN',          pattern: /postgresql:\/\/[a-z]+:simulated-[A-Za-z0-9]+@/ },
   { id: 'cw-slack-004', label: 'simulated Slack bot token',      pattern: /xoxb-simulated-[A-Za-z0-9-]{4,}/ },
+  // v0.2.2: honeydoc tracking markers (scripts/gen-honeydocs.mjs) were
+  // generated but matched NO pattern — document-tracking canaries were
+  // entirely dead. Pattern keeps in sync with the generator's format.
+  { id: 'cw-doc-005',   label: 'honeydoc tracking marker',       pattern: /canary-[a-z0-9]{6,12}/ },
 ];
 
 export function detectCanary(rawText) {
