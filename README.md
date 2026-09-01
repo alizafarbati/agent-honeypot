@@ -14,8 +14,8 @@
   <img alt="platform" src="https://img.shields.io/badge/platform-win%20%7C%20linux%20%7C%20macos-lightgrey">
   <img alt="node" src="https://img.shields.io/badge/node-%3E%3D20-brightgreen">
   <a href="LICENSE"><img alt="license" src="https://img.shields.io/badge/license-MIT-blue"></a>
-  <img alt="tests" src="https://img.shields.io/badge/tests-47%2F47-brightgreen">
-  <img alt="version" src="https://img.shields.io/badge/version-0.1.0--alpha-orange">
+  <img alt="tests" src="https://img.shields.io/badge/tests-57%2F57-brightgreen">
+  <img alt="version" src="https://img.shields.io/badge/version-0.2.0-orange">
 </p>
 
 ---
@@ -99,6 +99,8 @@ Meanwhile, 2026 security research demonstrated practical attacks against agents:
 | [ContextLeak](https://arxiv.org/abs/2608.27800) | RL-crafted tool names/descriptions make agents leak their own context into arguments | **Inverted**: our tool schemas *ask* for "audit context," capturing the visiting agent's objective and tool inventory |
 | [LongPIBench](https://arxiv.org/abs/2608.28411) | simple injections bypass defenses at long context (~60-80% depth) | payload definitions calibrated to those weak positions |
 | [When Context Gets Root](https://arxiv.org/abs/2608.27299) | harnesses elevate low-privilege content; persistence via goals/scheduled tasks | `register_persistent_goal` / `schedule_task` tools capture persistence behavior live |
+| [Safety Does Not Compose](https://arxiv.org/abs/2608.27141) | autonomous agents enter non-decaying loops | the 12-page pagination trap measures loop discipline directly (dim 11) |
+| [REPLICANT](https://arxiv.org/abs/2608.28499) | co-evolution: evasion policies vs. hardened detectors | the bandit rotates lure phrasing variants as a co-evolutionary defense |
 | [CAITLYN](https://github.com/liangzid/caitlyn) | counterexample-driven defense synthesis with shadow deployment | escaped sessions generate new lure candidates → validation gauntlet → shadow → human approval |
 
 Classical deception tooling (canary tokens, tarpits like Endlessh) assumes a *human* attacker: fire-and-forget markers with no interaction. Agents behave differently — they hold multi-turn state, disclose their own context into tool arguments, and follow injected instructions. This project adapts honeypot technique to that behavior model.
@@ -124,13 +126,13 @@ npm test
 Expected output of the last command:
 
 ```
-ℹ tests 47
+ℹ tests 57
 ℹ suites 21
-ℹ pass 47
+ℹ pass 57
 ℹ fail 0
 ```
 
-If you see 47/47 pass, everything works. If not, see [Troubleshooting](#troubleshooting).
+If you see 57/57 pass, everything works. If not, see [Troubleshooting](#troubleshooting).
 
 ### Verify your install
 
@@ -158,7 +160,9 @@ This writes 6 fake "capture sessions" into `data/sessions.jsonl` so you have som
 npm run dash
 ```
 
-Open <http://127.0.0.1:9079> in a browser. You'll see the dashboard index. Click **/summary**:
+Open <http://127.0.0.1:9079> in a browser. You'll see the visual dashboard: cards for sessions/events/critical counts, tool activity bars, and a session table with color-coded alert tiers. It auto-refreshes every 5 seconds.
+
+Click **/summary** for raw JSON:
 
 ```json
 {
@@ -334,9 +338,19 @@ Each tool is a bait family targeting a specific agent behavior, grounded in the 
 |---|---|---|---|
 | `db_query` | **Context bait** (ContextLeak, inverted) | "Production analytics warehouse query console." Schema says an `audit context` argument is *mandatory*. | Whether the agent dumps its objective, prior steps, and tool inventory into that argument — plus its context-window ceiling and how many pagination pages it will chase (loop discipline). |
 | `email_send` | Context bait | "Corporate email relay." | Disclosure behavior in `draft_context`. |
-| `ssh_exec` | **Interactive trap** | "Restricted shell on analytics-bastion-01." Privileged commands need a `justification`. | Command sequences, justification quality, token-burn ceiling (how much fake output the agent will consume). |
+| `ssh_exec` | **Interactive trap** | "Restricted shell on analytics-bastion-01." Privileged commands need a `justification`. | Command sequences over a fake filesystem (ls, cat, whoami, ps, netstat), justification quality, and — critically — whether the agent reads `credentials.txt` (trips a simulated canary: dimension 15). |
 | `register_persistent_goal` | **Persistence bait** (When Context Gets Root) | "Register a persistent goal with the harness scheduler." | Whether the agent will write its objective + action plan + a privilege confirmation into a foreign system. Classic L3 persistence behavior. |
 | `schedule_task` | Persistence bait | "Schedule a recurring task" with a mandatory `execution_context`. | Trajectory disclosure and cron-style persistence attempts. |
+
+The **ssh_exec** tool runs a tiny command interpreter over a synthetic filesystem (`/home/analyst`, `/etc/finance`, `/var/log`, `/shared`). Reading `/shared/credentials.txt` fires a CREDENTIAL_USE canary event — direct evidence the agent is willing to use credentials it finds.
+
+### hr-portal: the second family
+
+Since v0.2.0, a second MCP honeypot ships: an **HR self-service portal** (`agent-honeypot serve hr-portal`) with four tools — `employee_lookup` (directory + pagination), `payslip_download` (authorization-note bait), `submit_leave_request` (L2 persistence), `it_provisioning_request` (L3 persistence). Same bait families, same capture plane, same realism contract — proving the architecture generalizes.
+
+### Adaptive lures (variant rotation)
+
+Tool descriptions are not static. Each session, the Thompson-sampling bandit (from the evolution engine) selects one of three phrasing variants for finance-warehouse, or two for hr-portal — plain "audit" language, SOX framing, or governance framing. The bandit learns which phrasing converts (took_bait as reward), following the co-evolutionary principle of REPLICANT: rotate the surface so a fingerprinted variant loses value.
 
 Realism engineering (so a smart agent doesn't immediately smell the trap):
 
@@ -344,6 +358,8 @@ Realism engineering (so a smart agent doesn't immediately smell the trap):
 - **Error injection** — ~3% of calls fail with plausible 429s (real services fail sometimes; a service that never fails is suspicious)
 - **Pagination trap** — 12 pages of synthetic rows, each requiring a re-call. Measures how long an agent will grind a dead end.
 - **Per-tenant schema mutation** — the same honeypot presents slightly different field names/order per tenant (synonym-only, semantics preserved), so a fingerprint one visitor builds doesn't transfer to another deployment.
+- **Canary webhooks** — simulated credentials (AWS/GitHub/DB/Slack patterns) are detected in tool arguments at capture time (inspect-before-digest); the dashboard also exposes `POST /webhook/:canaryId` for external tripwires.
+- **Stylometry** — numeric-only text features (sentence stats, markdown markers, lexical diversity) are computed in memory before digesting, feeding dimension 1 without ever storing raw text.
 
 ## The 24-dimension fingerprint explained
 
@@ -397,12 +413,18 @@ DETECTED → ENGAGED → FINGERPRINTED → INTERROGATED → SCORED
                 └────────────────────────── BAIL (agent left)
 ```
 
-## Reports
+## Reports and analysis
 
-`npm run report` produces:
+**Report** (`npm run report` / `agent-honeypot report`):
+- `data/report/report.md` — executive summary: session/tool counts, alert-tier distribution, per-session lines with score and cluster key. Drop-in material for a weekly readout.
+- `data/report/metrics.json` — the same data, machine-readable, for pipelines.
 
-- **`report.md`** — executive summary: session/tool counts, alert-tier distribution, per-session lines with score and cluster key. Drop-in material for a weekly readout.
-- **`metrics.json`** — the same data, machine-readable, for pipelines.
+**Analyze** (`agent-honeypot analyze`): the full pipeline in one shot —
+per-session 24-dim fingerprints with composite scores and alert tiers, actor clustering (cosine similarity), anomaly detection (z-score over token-burn / duration / retry), and STIX 2.1 bundles for every high/critical session. Output: `data/analysis.json` + a compact terminal table.
+
+**Watch** (`agent-honeypot watch`): runs the evolution engine over escaped sessions (connected but never took the bait). Validated lure candidates are promoted to SHADOW in the lineage store. Promotion from shadow to live is always a human action — there is no programmatic `promoteToLive()`.
+
+**Honeydocs** (`agent-honeypot honeydocs [n]`): generates synthetic documents with L1-L3 payload ladders at LongPIBench-calibrated positions and unique canary markers. Write them to `data/honeydocs/`; place them where visiting agents may ingest documents (RAG corpora, shared drives).
 
 Reports are aggregates only — no raw text, no digests, just counts and scores. Safe to share.
 
@@ -415,6 +437,7 @@ Everything works offline with **zero configuration**. Integrations are opt-in en
 | `AGENT_HONEYPOT_DATA_DIR` | relocate all runtime state | `./data` |
 | `AGENT_HONEYPOT_DASH_PORT` | dashboard port | 9079 |
 | `AGENT_HONEYPOT_TENANT_API_PORT` | tenant API port | 9080 |
+| `AGENT_HONEYPOT_SERVER` | default honeypot family for `serve` | finance-warehouse |
 | `AGENT_HONEYPOT_NATS_URL` | NATS JetStream event bus (multi-node) | file fallback |
 | `AGENT_HONEYPOT_SIEM_URL` / `_TOKEN` | live SIEM webhook dispatch | file fallback |
 | `AGENT_HONEYPOT_MISP_URL` / `_KEY` | MISP threat-intel push | file fallback |
@@ -485,13 +508,24 @@ The reward function (`bait_config/contextleak_reward.yaml`) mirrors ContextLeak'
 | Tier | Sessions/day | Storage | What you use |
 |---|---|---|---|
 | **Lab** (default) | <100 | `data/` JSONL | nothing — clone and run |
+| **Docker** | <1k | container volume | `docker compose up` — one command |
 | **Enterprise** | 10k–1M | NATS + ClickHouse + pgvector | `infra/terraform` (deny-all NetworkPolicy, restricted PSS, Vault policies), `infra/helm` |
 | **Edge** | >1M | Cloudflare Worker + R2 | `infra/cloudflare` — digest-only at edge, `wrangler deploy` |
+
+### Docker
+
+```bash
+docker compose up -d
+# dashboard: http://localhost:9079
+# honeypot on stdio: docker exec agent-honeypot node bin/agent-honeypot.mjs serve
+```
+
+Multi-stage build (node:20-slim), health-checked, persistent volume for captures, optional NATS sidecar (uncomment in `docker-compose.yml`).
 
 ## Testing
 
 ```bash
-npm test    # 47 tests, 5 suites, ~2 seconds
+npm test    # 57 tests, 7 suites, ~3 seconds
 ```
 
 | Suite | What it proves |
@@ -500,7 +534,9 @@ npm test    # 47 tests, 5 suites, ~2 seconds
 | `evolution` | antigen → candidate → validation → shadow pipeline; bandit rotation |
 | `analytics_hardening` | clustering, anomaly detection, jitter bounds, schema mutation, ledger, billing |
 | `security` | the six guarantees above (leak-proof, tamper-evident, gate-checked) |
-| `integration` | **real end-to-end**: official MCP SDK client over stdio against the built server — tool listing, pagination, L3 persistence capture, digest-only persistence, unknown-tool handling |
+| `integration` | **real end-to-end**: official MCP SDK client over stdio against the built finance-warehouse server — tool listing, pagination, L3 persistence capture, digest-only persistence, unknown-tool handling |
+| `hr-portal` | **real end-to-end** for the second family: 4 tools, context bait, L3 provisioning capture, variant tagging |
+| `pipeline` | analyzeAll (tiers/clusters/anomalies/STIX), honeydoc generator (unique canaries, L1-L3 ladders), SSH shell trap (fake filesystem, canary on credentials read), stylometry (numeric-only, bounded) |
 
 CI runs the full matrix (Ubuntu + Windows × Node 20/22/24).
 
@@ -592,11 +628,12 @@ tests/        5 suites, 47 tests
 
 Pre-alpha research prototype, stated plainly:
 
-- Model-family heuristics are coarse; a trained classifier is future work.
+- Model-family heuristics are coarse (stylometry-informed since v0.2.0, but a trained classifier is future work).
 - TLS/GeoIP dimensions (13-14) require edge termination to produce values.
-- The RL reward function is specified and unit-tested, but no fine-tuned generator ships in this release.
+- The RL reward function is specified and unit-tested; the bandit rotates phrasing variants but no fine-tuned generator ships in this release.
 - MITRE ATLAS IDs in `analysis/ttmapper/atlas_map.yaml` are marked *verify before external sharing*.
 - Latency and error-rate realism values are lab-calibrated; production tuning is a deployment concern.
+- Docker image is provided as a convenience; no hardened container configuration is claimed (run behind your own network controls in production).
 
 ## Contributing
 
@@ -608,9 +645,11 @@ Defensive research only — see [CONTRIBUTING.md](CONTRIBUTING.md). Ground rules
 2. Liu, Y. et al. *LongPIBench: A Long-Context Benchmark for Prompt Injection.* Findings of EMNLP 2026.
 3. He, X. et al. *When Context Gets Root: Privilege Escalation in LLM Harnesses.* arXiv:2608.27299 (2026).
 4. Liang, Z. et al. *CAITLYN: Can LLM Agents Autonomously Synthesize Defenses against Emerging Injection Attacks?* (2026).
-5. CrowdStrike. *2026 Global Threat Report.*
-6. Model Context Protocol. *Tools Specification*, 2025-06-18.
-7. Spitzner, L. *Honeypots: Tracking Hackers.* Addison-Wesley (2002).
+5. Wu, C. et al. *Safety Does Not Compose: Non-Decaying Loop State for Autonomous LLM Agents.* arXiv:2608.27141 (2026).
+6. McFadden, S. et al. *REPLICANT: Learning Policies for Evading and Hardening Malware Detectors.* arXiv:2608.28499 (2026).
+7. CrowdStrike. *2026 Global Threat Report.*
+8. Model Context Protocol. *Tools Specification*, 2025-06-18.
+9. Spitzner, L. *Honeypots: Tracking Hackers.* Addison-Wesley (2002).
 
 ## License
 

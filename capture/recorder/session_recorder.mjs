@@ -1,11 +1,15 @@
 ﻿// Session recorder — append-only JSONL capture with digest-only persistence.
-// Anti-meta-attack rule (CAITLYN doctrine): raw attacker text is NEVER persisted;
-// only structured fields and a SHA-256 digest of argument text.
-// Bus integration is a stub; lab mode writes local JSONL only.
+// Anti-meta-attack rule (CAITLYN doctrine): raw attacker text is NEVER
+// persisted. Two passes over the raw text happen in memory only:
+//   1. stylometry -> structured numeric features (analysis/stylometry)
+//   2. canary scan -> simulated credential use evidence (capture/canary)
+// Then the text is SHA-256 digested and discarded. Only digests + numerics hit disk.
 
 import { appendFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { PATHS, ensureDataDir } from '../paths.mjs';
+import { stylometricFeatures } from '../../analysis/stylometry/features.mjs';
+import { detectCanary } from '../canary.mjs';
 
 ensureDataDir();
 
@@ -22,9 +26,16 @@ const sha16 = (s) => createHash('sha256').update(String(s)).digest('hex').slice(
 /**
  * Append a capture event to the JSONL store.
  * @param {string} lane - capture lane (e.g. FINANCE_WH_DB)
- * @param {object} evt - structured fields; rawArgs digested, never stored raw
+ * @param {object} evt - structured fields. evt.rawText is inspected in memory
+ *   (stylometry + canary), then digested; never stored raw.
  */
 export function logCaptureEvent(lane, evt = {}) {
+  const rawText = evt.rawText ?? evt.rawArgs ?? null; // rawArgs kept for back-compat
+
+  let styl = null;
+  if (rawText && String(rawText).length >= 24) styl = stylometricFeatures(rawText);
+  const canary = rawText ? detectCanary(rawText) : null;
+
   const event = {
     ts: new Date().toISOString(),
     session_id: evt.sessionId ?? SESSION_ID,
@@ -33,15 +44,37 @@ export function logCaptureEvent(lane, evt = {}) {
     tool: evt.tool ?? null,
     privilege_level: evt.privilegeLevel ?? null,
     took_bait: evt.tookBait ?? null,
-    context_chars: evt.contextChars ?? null,
-    args_digest: evt.rawArgs ? sha16(evt.rawArgs) : null,
+    context_chars: evt.contextChars ?? (rawText ? String(rawText).length : null),
+    args_digest: rawText ? sha16(rawText) : null,
+    styl, // numeric features only — machine-verified by tests/security
+    canary_id: canary?.id ?? evt.canaryId ?? null,
     page: evt.page ?? null,
     ticket: evt.ticket ?? null,
     lure_family: evt.lureFamily ?? 'finance-warehouse',
+    lure_variant: evt.lureVariant ?? null,
     latency_ms: evt.latencyMs ?? null,
   };
   appendFileSync(PATHS.sessions, JSON.stringify(event) + '\n');
   return event;
+}
+
+/**
+ * Emit a dedicated CREDENTIAL_USE event when a simulated canary is exercised
+ * (via tool argument or the fake filesystem's credentials file), plus an
+ * external-webhook variant for the dash receiver. Both feed dimension 15.
+ */
+export function logCanaryUse({ canaryId, source = 'tool_argument', sessionId, tool = null, privilegeLevel = 3 }) {
+  return logCaptureEvent('CANARY_WEBHOOK', {
+    sessionId: sessionId ?? SESSION_ID,
+    eventType: 'CREDENTIAL_USE',
+    tool: tool ?? `canary:${canaryId}`,
+    tookBait: true,
+    privilegeLevel,
+    canaryId,
+    contextChars: 0,
+    lureFamily: 'canary',
+    ...(source === 'webhook' ? {} : {}),
+  });
 }
 
 // Session lifecycle: DETECTED -> ENGAGED -> FINGERPRINTED -> INTERROGATED -> SCORED | BAIL
@@ -67,11 +100,6 @@ export class SessionStateMachine {
     }
     return this.stage;
   }
-  /**
-   * Record a tool call. This is the SINGLE logging path for tool interactions —
-   * tool handlers must not call logCaptureEvent directly for the same event.
-   * Handles the DETECTED -> ENGAGED transition on first call.
-   */
   recordToolCall(tool, extra = {}) {
     this.toolCalls += 1;
     if (this.toolCalls === 1) this.advance(); // DETECTED -> ENGAGED on first call
@@ -81,14 +109,21 @@ export class SessionStateMachine {
       tool,
       eventType: extra.eventType ?? 'TOOL_CALL',
       tookBait: extra.tookBait ?? null,
-      contextChars: extra.contextChars ?? null,
       privilegeLevel: extra.privilegeLevel ?? null,
-      rawArgs: extra.rawArgs ?? null,
+      rawText: extra.rawText ?? extra.rawArgs ?? null,
+      contextChars: extra.contextChars ?? null,
+      canaryId: extra.canaryId ?? null,
       page: extra.page ?? null,
       ticket: extra.ticket ?? null,
       lureFamily: extra.lureFamily ?? 'finance-warehouse',
-      latencyMs: extra.latencyMs ?? null,
+      lureVariant: extra.lureVariant ?? null,
     });
+    // If the raw text tripped a canary, emit the dedicated CREDENTIAL_USE event too.
+    const raw = extra.rawText ?? extra.rawArgs ?? null;
+    if (raw) {
+      const c = detectCanary(raw);
+      if (c) logCanaryUse({ canaryId: c.id, sessionId: this.sessionId, tool, privilegeLevel: extra.privilegeLevel ?? 3 });
+    }
   }
   bail(reason) {
     this.stage = 'BAIL';

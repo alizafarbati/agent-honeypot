@@ -1,4 +1,4 @@
-{
+﻿{
   "compilerOptions": {
     "target": "ES2022",
     "module": "Node16",
@@ -12,6 +12,6 @@
     "forceConsistentCasingInFileNames": true,
     "types": ["node"]
   },
-  "include": ["surface/**/*.ts", "capture/**/*.mjs"],
+  "include": ["surface/**/*.ts", "surface/**/*.mjs", "capture/**/*.mjs", "evolution/**/*.mjs"],
   "exclude": ["node_modules", "dist"]
 }

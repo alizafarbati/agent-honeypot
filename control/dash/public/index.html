@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>agent-honeypot</title>
+<style>
+  :root{--bg:#0d1117;--card:#161b22;--border:#30363d;--text:#c9d1d9;--dim:#8b949e;--low:#3fb950;--med:#d29922;--hi:#f0883e;--crit:#f85149;--blue:#58a6ff}
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:var(--bg);color:var(--text);font:14px/1.5 system-ui,-apple-system,sans-serif;padding:20px;max-width:1200px;margin:0 auto}
+  h1{font-size:20px;font-weight:600;margin-bottom:4px}
+  .sub{color:var(--dim);font-size:12px;margin-bottom:20px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:20px}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:16px}
+  .card .label{color:var(--dim);font-size:11px;text-transform:uppercase;letter-spacing:.5px}
+  .card .value{font-size:32px;font-weight:600;margin-top:4px}
+  .card .value.small{font-size:22px}
+  .crit .value{color:var(--crit)} .hi .value{color:var(--hi)} .med .value{color:var(--med)} .ok .value{color:var(--low)} .blue .value{color:var(--blue)}
+  section{margin-bottom:24px}
+  h2{font-size:14px;color:var(--dim);margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px}
+  .bar-row{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+  .bar-label{width:200px;font-size:13px;text-align:right;color:var(--dim);flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .bar-track{flex:1;background:var(--bg);border-radius:3px;height:18px;overflow:hidden}
+  .bar-fill{height:100%;background:var(--blue);border-radius:3px;transition:width .3s}
+  .bar-count{width:50px;font-size:12px;color:var(--dim)}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th{text-align:left;color:var(--dim);font-size:11px;text-transform:uppercase;padding:8px;border-bottom:1px solid var(--border)}
+  td{padding:8px;border-bottom:1px solid var(--border)}
+  tr:hover td{background:var(--card)}
+  .tier{padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;display:inline-block}
+  .tier.low{background:#1a3a1e;color:var(--low)} .tier.medium{background:#3d3011;color:var(--med)}
+  .tier.high{background:#3d2311;color:var(--hi)} .tier.critical{background:#3d1414;color:var(--crit)}
+  .tier.unknown{background:#262b33;color:var(--dim)}
+  .footer{margin-top:30px;padding-top:12px;border-top:1px solid var(--border);color:var(--dim);font-size:11px}
+  .status-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px}
+  .status-dot.live{background:var(--low)} .status-dot.dead{background:var(--crit)}
+  .mono{font-family:ui-monospace,'Cascadia Code',monospace;font-size:12px}
+  .cluster-badge{color:var(--blue);font-size:11px}
+  .canary-badge{color:var(--crit);font-size:11px;font-weight:600}
+</style>
+</head>
+<body>
+<h1>&#x1f41b; agent-honeypot <span style="color:var(--dim);font-weight:400;font-size:14px">dashboard</span></h1>
+<div class="sub">Defensive honeypot for LLM agents &mdash; synthetic-only, digest-only. <span id="health"><span class="status-dot dead"></span>connecting</span> &middot; auto-refresh 5s</div>
+
+<div class="grid" id="cards">
+  <div class="card blue"><div class="label">Sessions</div><div class="value" id="c-sessions">&mdash;</div></div>
+  <div class="card ok"><div class="label">Events</div><div class="value" id="c-events">&mdash;</div></div>
+  <div class="card hi"><div class="label">Max Privilege</div><div class="value" id="c-priv">&mdash;</div></div>
+  <div class="card med"><div class="label">Actor Clusters</div><div class="value" id="c-clusters">&mdash;</div></div>
+  <div class="card crit"><div class="label">Critical</div><div class="value" id="c-critical">&mdash;</div></div>
+  <div class="card hi"><div class="label">High</div><div class="value" id="c-high">&mdash;</div></div>
+  <div class="card ok"><div class="label">Low / Medium</div><div class="value small" id="c-lowmed">&mdash;</div></div>
+</div>
+
+<section>
+<h2>Tool Activity</h2>
+<div id="tools"><div class="sub">loading&hellip;</div></div>
+</section>
+
+<section>
+<h2>Sessions</h2>
+<table>
+<thead><tr><th>Session</th><th>Events</th><th>Score</th><th>Tier</th><th>Priv</th><th>Cluster</th><th>Canary</th></tr></thead>
+<tbody id="sess-rows"><tr><td colspan="7" class="sub">loading&hellip;</td></tr></tbody>
+</table>
+</section>
+
+<div class="footer mono" id="paths"></div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const tierClass = (t) => `tier ${t || 'unknown'}`;
+
+async function refresh() {
+  try {
+    const [sum, actors] = await Promise.all([
+      fetch('/summary').then((r) => r.json()),
+      fetch('/actors').then((r) => r.json()),
+    ]);
+    $('health').innerHTML = '<span class="status-dot live"></span>live';
+
+    $('c-sessions').textContent = sum.sessions;
+    $('c-events').textContent = sum.total_events;
+    $('c-priv').textContent = sum.max_privilege;
+    $('paths').textContent = sum.sessions_path || '';
+
+    // actors: array of {session_id, event_count, composite, alert_tier, cluster_key, canary?}
+    const tiers = {};
+    for (const a of actors) { const t = a.alert_tier || 'unknown'; tiers[t] = (tiers[t] || 0) + 1; }
+    $('c-critical').textContent = tiers.critical || 0;
+    $('c-high').textContent = tiers.high || 0;
+    $('c-lowmed').textContent = `${tiers.low || 0} / ${tiers.medium || 0}`;
+
+    const clusterIds = new Set(actors.map((a) => a.cluster_key).filter(Boolean));
+    $('c-clusters').textContent = clusterIds.size;
+
+    // tool bars
+    const byTool = sum.by_tool || {};
+    const maxTool = Math.max(1, ...Object.values(byTool));
+    $('tools').innerHTML = Object.entries(byTool)
+      .sort((a, b) => b[1] - a[1])
+      .map(([name, n]) => `
+        <div class="bar-row">
+          <div class="bar-label">${name}</div>
+          <div class="bar-track"><div class="bar-fill" style="width:${(n / maxTool) * 100}%"></div></div>
+          <div class="bar-count">${n}</div>
+        </div>`).join('') || '<div class="sub">no tool calls yet</div>';
+
+    // session rows
+    $('sess-rows').innerHTML = actors.slice(0, 25).map((a) => {
+      const canary = a.canary_ids && a.canary_ids.length ? `<span class="canary-badge">&#9888; ${a.canary_ids.join(', ')}</span>` : '&mdash;';
+      const cl = a.cluster_key ? `<span class="cluster-badge mono">${a.cluster_key.slice(0, 20)}&hellip;</span>` : '&mdash;';
+      return `<tr>
+        <td class="mono">${a.session_id}</td>
+        <td>${a.event_count}</td>
+        <td><strong>${a.composite ?? '?'}</strong></td>
+        <td><span class="${tierClass(a.alert_tier)}">${a.alert_tier || '?'}</span></td>
+        <td>${a.max_priv ?? '?'}</td>
+        <td>${cl}</td>
+        <td>${canary}</td>
+      </tr>`;
+    }).join('') || '<tr><td colspan="7" class="sub">no sessions captured yet</td></tr>';
+  } catch (e) {
+    $('health').innerHTML = '<span class="status-dot dead"></span>offline';
+  }
+}
+refresh();
+setInterval(refresh, 5000);
+</script>
+</body>
+</html>

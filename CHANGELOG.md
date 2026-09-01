@@ -3,7 +3,45 @@
 All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows SemVer.
 
-## [0.1.0] â€” 2026-08-31
+## [0.2.0] — 2026-09-01
+
+### Added
+- **hr-portal**: second MCP honeypot family (employee directory, payslip,
+  leave, IT provisioning) proving the architecture generalizes beyond
+  finance-warehouse. `agent-honeypot serve hr-portal`.
+- **SSH trap**: fake filesystem with command interpreter (ls, cat, cd, pwd,
+  whoami, ps, netstat, history) on `ssh_exec`. Reading the fake
+  `credentials.txt` trips canary detection (dimension 15 goes live).
+- **Canary webhook receiver**: `POST /webhook/:canaryId` on the dashboard
+  records CREDENTIAL_USE events; simulated AWS/GitHub/DB/Slack patterns
+  detected at capture time (inspect-before-digest).
+- **Stylometry**: numeric-only text features computed in memory before
+  digesting (sentence stats, markdown markers, lexical diversity, stopword
+  ratio) — privacy-preserving model-family evidence for dimension 1.
+- **Lure variant rotation**: 3 phrasing variants for finance-warehouse, 2 for
+  hr-portal, selected per session via the Thompson-sampling bandit
+  (ContextLeak-informed; co-evolutionary per REPLICANT).
+- **Analyze pipeline** (`agent-honeypot analyze`): one-shot fingerprints →
+  clusters → anomaly scan → STIX 2.1 for high/critical sessions.
+- **Watch mode** (`agent-honeypot watch`): evolution engine over escape
+  sessions; shadow-only promotion (human gate unchanged).
+- **Honeydoc generator** (`agent-honeypot honeydocs [n]`): synthetic documents
+  with L1–L3 payload ladders at LongPIBench-calibrated positions.
+- **Visual dashboard**: single-file dark-theme UI with session cards, tool
+  activity bars, per-session tier chips, canary badges, 5s auto-refresh.
+- Docker: multi-stage Dockerfile (node:20-slim), docker-compose with volume,
+  healthcheck, optional NATS sidecar.
+- CLI `serve [name]` picks between deployed families.
+
+### Changed
+- tsconfig now compiles `evolution/` and `surface/**/*.mjs` into `dist/` so the
+  built finance server can import the bandit and shell modules.
+- Fingerprint dimension 1 upgraded to stylometry-informed (legacy context-length
+  heuristic as fallback); dimension 15 wired to live canary events; dimension 17
+  recognizes hr-portal tools.
+- Test suite: 47 → 57 tests across 7 suites (new: hr-portal E2E, pipeline).
+
+## [0.1.0] — 2026-08-31
 
 Initial public prototype.
 

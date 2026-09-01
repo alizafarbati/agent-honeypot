@@ -1,7 +1,7 @@
 ﻿{
   "name": "agent-honeypot",
-  "version": "0.1.0",
-  "description": "A defensive honeypot for LLM agents. MCP tool servers, canary documents, and fingerprinting to detect and study unauthorized AI agents. Research prototype — all data synthetic.",
+  "version": "0.2.0",
+  "description": "A defensive honeypot for LLM agents. MCP tool servers, canary documents, and 24-dimension fingerprinting to detect and study unauthorized AI agents. Research prototype — all data synthetic.",
   "type": "module",
   "main": "dist/surface/mcpservers/finance-warehouse/mcp_server.js",
   "bin": {
@@ -14,7 +14,7 @@
     "build": "tsc",
     "start": "node dist/surface/mcpservers/finance-warehouse/mcp_server.js",
     "typecheck": "tsc --noEmit",
-    "test": "node --test tests/core.test.mjs tests/evolution.test.mjs tests/analytics_hardening.test.mjs tests/security.test.mjs tests/integration.test.mjs",
+    "test": "node --test tests/core.test.mjs tests/evolution.test.mjs tests/analytics_hardening.test.mjs tests/security.test.mjs tests/integration.test.mjs tests/hr-portal.test.mjs tests/pipeline.test.mjs",
     "dash": "node control/dash/server.mjs",
     "seed": "node scripts/seed.mjs",
     "report": "node control/report/generator.mjs",

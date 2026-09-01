@@ -21,7 +21,7 @@ jobs:
       - run: npm ci
       - run: npm run typecheck
       - run: npm run build
-      - run: npm test  # 47 tests across 5 suites incl. security + e2e
+      - run: npm test  # 57 tests across 7 suites incl. security + dual e2e + pipeline
 
   doctor:
     runs-on: ubuntu-latest

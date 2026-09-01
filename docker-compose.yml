@@ -1,0 +1,27 @@
+services:
+  agent-honeypot:
+    build: .
+    container_name: agent-honeypot
+    ports:
+      - "9079:9079"
+    volumes:
+      - ah-data:/app/data
+    environment:
+      # All optional — see .env.example
+      - AGENT_HONEYPOT_NATS_URL=${AGENT_HONEYPOT_NATS_URL:-}
+      - AGENT_HONEYPOT_SIEM_URL=${AGENT_HONEYPOT_SIEM_URL:-}
+      - AGENT_HONEYPOT_SIEM_TOKEN=${AGENT_HONEYPOT_SIEM_TOKEN:-}
+      - AGENT_HONEYPOT_MISP_URL=${AGENT_HONEYPOT_MISP_URL:-}
+      - AGENT_HONEYPOT_MISP_KEY=${AGENT_HONEYPOT_MISP_KEY:-}
+    restart: unless-stopped
+
+  # Optional NATS bus for multi-node event routing. Uncomment to use.
+  # nats:
+  #   image: nats:2
+  #   command: ["-js"]
+  #   ports:
+  #     - "4222:4222"
+  #   restart: unless-stopped
+
+volumes:
+  ah-data:
