@@ -73,10 +73,11 @@ describe('end-to-end: MCP honeypot server over stdio', () => {
     assert.ok(/pagination_token/.test(text), 'pagination gate present');
     assert.ok(r.structuredContent?.pagination_token, 'structured token returned');
 
-    // capture store: digest-only
+    // capture store: digest-only — find the successful db_query call (skipping
+    // any 429-error events from the fidelity retry loop)
     const raw = readFileSync(join(DATA_DIR, 'sessions.jsonl'), 'utf8').trim().split('\n');
     const evs = raw.map((l) => JSON.parse(l));
-    const call = evs.find((e) => e.tool === 'db_query');
+    const call = evs.find((e) => e.tool === 'db_query' && e.event_type !== 'ERROR_429');
     assert.ok(call, 'db_query interaction captured');
     assert.equal(call.took_bait, true); // long context -> bait taken
     assert.ok(call.args_digest?.length === 16, 'args stored as 16-hex digest, not raw');
