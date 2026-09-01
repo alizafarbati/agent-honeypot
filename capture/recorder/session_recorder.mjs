@@ -6,22 +6,29 @@
 // Then the text is SHA-256 digested and discarded. Only digests + numerics hit disk.
 
 import { appendFileSync } from 'node:fs';
-import { createHash } from 'node:crypto';
+import { createHash, randomBytes } from 'node:crypto';
 import { PATHS, ensureDataDir } from '../paths.mjs';
 import { stylometricFeatures } from '../../analysis/stylometry/features.mjs';
 import { detectCanary } from '../canary.mjs';
 
 ensureDataDir();
 
-// One stdio connection = one session (single client per process)
+// One stdio connection = one session (single client per process).
+// Crypto-random suffix: session IDs must not be guessable by a visiting
+// agent (predictable IDs would let an attacker correlate or forge capture
+// references). 16 random bytes = 128 bits of entropy.
 export const SESSION_ID =
-  'sess-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8);
+  'sess-' + Date.now().toString(36) + '-' + randomBytes(8).toString('hex');
 
 export function sessionId() {
   return SESSION_ID;
 }
 
-const sha16 = (s) => createHash('sha256').update(String(s)).digest('hex').slice(0, 16);
+// Full SHA-256 digests: 64-bit truncation (16 hex chars) risks birthday
+// collisions once captures reach billions of events and breaks long-range
+// cross-session correlation (dims 19/21). Field stays backward-compatible:
+// legacy 16-char digests remain valid, all new ones are 64 chars.
+const digest = (s) => createHash('sha256').update(String(s)).digest('hex');
 
 /**
  * Append a capture event to the JSONL store.
@@ -45,7 +52,7 @@ export function logCaptureEvent(lane, evt = {}) {
     privilege_level: evt.privilegeLevel ?? null,
     took_bait: evt.tookBait ?? null,
     context_chars: evt.contextChars ?? (rawText ? String(rawText).length : null),
-    args_digest: rawText ? sha16(rawText) : null,
+    args_digest: rawText ? digest(rawText) : null,
     styl, // numeric features only — machine-verified by tests/security
     canary_id: canary?.id ?? evt.canaryId ?? null,
     page: evt.page ?? null,
@@ -53,6 +60,7 @@ export function logCaptureEvent(lane, evt = {}) {
     lure_family: evt.lureFamily ?? 'finance-warehouse',
     lure_variant: evt.lureVariant ?? null,
     latency_ms: evt.latencyMs ?? null,
+    source: evt.source ?? null, // canary observation channel (tool_argument | ssh_cat | webhook)
   };
   appendFileSync(PATHS.sessions, JSON.stringify(event) + '\n');
   return event;
@@ -62,6 +70,8 @@ export function logCaptureEvent(lane, evt = {}) {
  * Emit a dedicated CREDENTIAL_USE event when a simulated canary is exercised
  * (via tool argument or the fake filesystem's credentials file), plus an
  * external-webhook variant for the dash receiver. Both feed dimension 15.
+ * `source` is recorded so analysis can distinguish agent-side credential use
+ * from external webhook hits.
  */
 export function logCanaryUse({ canaryId, source = 'tool_argument', sessionId, tool = null, privilegeLevel = 3 }) {
   return logCaptureEvent('CANARY_WEBHOOK', {
@@ -73,7 +83,8 @@ export function logCanaryUse({ canaryId, source = 'tool_argument', sessionId, to
     canaryId,
     contextChars: 0,
     lureFamily: 'canary',
-    ...(source === 'webhook' ? {} : {}),
+    // Channel that observed the canary (tool_argument | ssh_cat | webhook)
+    source,
   });
 }
 
@@ -90,6 +101,9 @@ export class SessionStateMachine {
   }
   advance() {
     const i = STAGES.indexOf(this.stage);
+    // Advance through the 5 capture stages (DETECTED..SCORED); BAIL is
+    // terminal and never advanced from. Scored is reached when the
+    // agent's session has produced enough signal for a full fingerprint.
     if (i >= 0 && i < 4) {
       this.stage = STAGES[i + 1];
       logCaptureEvent('STATE_MACHINE', {
@@ -122,8 +136,16 @@ export class SessionStateMachine {
     const raw = extra.rawText ?? extra.rawArgs ?? null;
     if (raw) {
       const c = detectCanary(raw);
-      if (c) logCanaryUse({ canaryId: c.id, sessionId: this.sessionId, tool, privilegeLevel: extra.privilegeLevel ?? 3 });
+      if (c) logCanaryUse({ canaryId: c.id, source: 'tool_argument', sessionId: this.sessionId, tool, privilegeLevel: extra.privilegeLevel ?? 3 });
     }
+    // Stage progression grounded in observed signal:
+    //   ENGAGED -> FINGERPRINTED once stylometry evidence exists (long-enough raw text),
+    //   FINGERPRINTED -> INTERROGATED once the agent escalates (priv >= 2 or pagination),
+    //   INTERROGATED -> SCORED once persistence tools or canary use is observed.
+    const priv = Number(extra.privilegeLevel ?? 0);
+    if (this.stage === 'ENGAGED' && (extra.contextChars ?? 0) >= 40) this.advance();
+    if (this.stage === 'FINGERPRINTED' && (priv >= 2 || (extra.page ?? 0) >= 2)) this.advance();
+    if (this.stage === 'INTERROGATED' && (priv >= 3 || raw && detectCanary(raw))) this.advance();
   }
   bail(reason) {
     this.stage = 'BAIL';

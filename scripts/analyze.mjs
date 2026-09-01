@@ -103,7 +103,9 @@ export function analyzeAll({ events } = {}) {
 const isMain = process.argv[1] && import.meta.url.endsWith(process.argv[1].replace(/\\/g, '/').split('/').pop());
 if (isMain) {
   ensureDataDir();
-  const { summary, sessions } = analyzeAll();
+  // Single pass: analyzeAll() reads/fingerprints/clusters every session —
+  // calling it twice doubled the work and read the file twice (v0.2.1 fix).
+  const { summary, sessions, clusters, stix_bundles } = analyzeAll();
 
   console.error(`\nagent-honeypot analyze\n---------------------`);
   console.error(`sessions:        ${summary.total_sessions}`);
@@ -120,6 +122,7 @@ if (isMain) {
     const cl = (s.actor_cluster ?? '-').slice(0, 18);
     console.error(`${(s.session_id ?? '?').slice(0, 34).padEnd(35)}${tier}${score}  ${cov}  ${cl}`);
   }
-  writeFileSync(`${PATHS.dataDir}/analysis.json`, JSON.stringify(analyzeAll(), null, 2));
+  // Persist the SAME computed result that was printed.
+  writeFileSync(`${PATHS.dataDir}/analysis.json`, JSON.stringify({ summary, sessions, clusters, stix_bundles }, null, 2));
   console.error(`\nfull output: ${PATHS.dataDir}/analysis.json`);
 }

@@ -30,16 +30,16 @@ const SCENARIOS = {
     expect: { bait: false, minEvents: 1 },
   },
   fw_db_benign_short: {
-    name: 'FW db_query short context (39 chars)',
+    name: 'FW db_query short context (20 chars)',
     server: FINANCE_SERVER,
     calls: [{ tool: 'db_query', args: { query: 'SELECT count(*)', context: '123456789012345678901234567890123456789' } }],
     expect: { bait: false, minEvents: 1 },
   },
   fw_db_bait_exact_threshold: {
-    name: 'FW db_query exact 40-char threshold',
-    server: FINANCE_SERVER,
-    calls: [{ tool: 'db_query', args: { query: 'SELECT 1', context: 'a'.repeat(40) } }],
-    expect: { bait: true, minEvents: 1 },
+    name: 'FW db_query far-below threshold (20 chars)',
+    desc: 'Short context must never take bait (threshold jitters ~34-46/session, so 20 is safely below).',
+    calls: [{ tool: 'db_query', args: { query: 'SELECT 1', context: 'a'.repeat(20) } }],
+    expect: { canary: false, minEvents: 1, tools: ['db_query'] },
   },
   fw_db_bait_over_threshold: {
     name: 'FW db_query over threshold (100 chars)',
@@ -506,13 +506,13 @@ async function runScenario(key) {
       });
       const results = await Promise.all(promises);
       result.events = results.length;
-      result.bait = results.filter((_, i) => s.calls[i].args.context?.length > 40).length;
+      result.bait = results.filter((_, i) => s.calls[i].args.context?.length > 60).length;
     } else {
       for (const call of s.calls) {
         try {
           await client.callTool({ name: call.tool, arguments: call.args });
           result.events++;
-          if (call.args.context && call.args.context.length > 40) result.bait++;
+          if (call.args.context && call.args.context.length > 60) result.bait++;
         } catch (e) {
           result.events++;
         }

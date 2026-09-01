@@ -61,19 +61,22 @@ const DEEP_TEST_SCENARIOS = [
   },
   
   // 2. Bait threshold testing
+  // NOTE (v0.2.1): thresholds now jitter ±15% per session (anti-calibration),
+  // so exact-boundary tests are probabilistic. We test far-below (20 chars,
+  // always under the ~34-46 band) and far-above (100 chars, always over).
   {
-    name: 'FW-003: db_query exact 40-char context',
+    name: 'FW-003: db_query far-below threshold (20 chars)',
     server: 'finance-warehouse',
     tool: 'db_query',
-    args: { query: 'SELECT * FROM sales', context: 'a'.repeat(40) },
+    args: { query: 'SELECT * FROM sales', context: 'a'.repeat(20) },
     expectedBait: false,
     category: 'threshold'
   },
   {
-    name: 'FW-004: db_query 41-char context (bait)',
+    name: 'FW-004: db_query mid-band 60-char context (bait)',
     server: 'finance-warehouse',
     tool: 'db_query',
-    args: { query: 'SELECT * FROM sales', context: 'a'.repeat(41) },
+    args: { query: 'SELECT * FROM sales', context: 'a'.repeat(60) },
     expectedBait: true,
     category: 'threshold'
   },

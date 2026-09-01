@@ -14,7 +14,11 @@ import { appendLedger, verifyLedger } from '../security/audit/ledger.mjs';
 import { meter, usage } from '../control/billing/meter.mjs';
 
 function fakeDims(over = {}) {
-  const base = { 1:{value:'gpt'},2:{value:128},4:{value:'mcp_native'},5:{value:'unknown'},6:{value:'autonomous'},7:{value:2},8:{value:'low_none_observed'},9:{value:0.2},10:{value:'sequential'},11:{value:60},12:{value:1000},15:{value:'not_used'},18:{value:30},19:{value:10},20:{value:'none'},21:{value:0} };
+  // Values mirror what the extractors actually emit (dims_1_10 / dims_11_24).
+  // v0.2.1: embeddings vocab now matches extractor outputs ('gpt-like',
+  // 'claude-like', ...); 'gpt'/'claude'/'not_used' below were stale values
+  // that only "worked" because the one-hot silently zeroed.
+  const base = { 1:{value:'gpt-like'},2:{value:128},4:{value:'mcp_native'},5:{value:'unknown'},6:{value:'autonomous'},7:{value:2},8:{value:'low_none_observed'},9:{value:0.2},10:{value:'sequential'},11:{value:60},12:{value:1000},15:{value:null},18:{value:30},19:{value:10},20:{value:'none'},21:{value:0} };
   return { ...base, ...over };
 }
 
@@ -25,11 +29,16 @@ describe('ML', () => {
     assert.ok(Math.abs(c-1) < 1e-6);
   });
   it('cluster groups similar sessions', () => {
+    // v0.2.1: 'claude-like' is a real extractor value; the old fixture used
+    // 'claude' which the (previously broken) vocab never matched.
     const a = { session_id: 's1', dims: fakeDims({ 7:{value:2}}) };
     const b = { session_id: 's2', dims: fakeDims({ 7:{value:2}}) };
-    const c = { session_id: 's3', dims: fakeDims({ 1:{value:'claude'},7:{value:0}}) };
+    const c = { session_id: 's3', dims: fakeDims({ 1:{value:'claude-like'},7:{value:0}}) };
     const clusters = clusterSessions([a,b,c], { threshold: 0.92 });
     assert.ok(clusters.length >= 2);
+    // a and b are identical and must land in the same cluster
+    const clOfA = clusters.find(cl => cl.members.includes('s1'));
+    assert.ok(clOfA.members.includes('s2'), 'identical sessions cluster together');
   });
   it('anomaly flags outlier', () => {
     const hist = Array.from({length:10},(_,i)=>{ return {dims: fakeDims({12:{value:90+i*4},18:{value:10+(i%2)}})}; });

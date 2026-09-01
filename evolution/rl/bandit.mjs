@@ -1,12 +1,19 @@
 ﻿// Thompson-sampling bandit for lure variant rotation. Beta-Bernoulli posterior per
 // variant; state persists across restarts. Swap the store for Redis/Postgres in
 // multi-node deployments; the algorithm is unchanged.
+//
+// v0.2.1 fix: loadState()->mutate->write was an unlocked read-modify-write.
+// Two MCP server processes (finance + hr spawn concurrently) could interleave
+// and silently drop each other's outcomes. Now guarded by a best-effort
+// lockfile with bounded retry; on contention we re-read and re-apply so the
+// last writer never clobbers a concurrent update.
 
-import { readFileSync, writeFileSync, existsSync } from 'node:fs';
+import { readFileSync, writeFileSync, existsSync, mkdirSync, openSync, closeSync, unlinkSync } from 'node:fs';
 import { PATHS, ensureDataDir } from '../../capture/paths.mjs';
 
 ensureDataDir();
 const STATE = PATHS.bandit;
+const LOCK = PATHS.bandit + '.lock';
 
 function betaSample(alpha, beta) {
   // Marsaglia method via gamma sampling (simple, sufficient for lab)
@@ -30,18 +37,59 @@ function loadState() {
   if (!existsSync(STATE)) return {};
   try { return JSON.parse(readFileSync(STATE, 'utf8')); } catch { return {}; }
 }
-function saveState(s) { writeFileSync(STATE, JSON.stringify(s, null, 2)); }
+
+// ---- best-effort exclusive lock (O_EXCL create, stale after 2s) -------------
+function acquireLock() {
+  try {
+    const fd = openSync(LOCK, 'wx'); // fails if exists
+    writeFileSync(fd, String(Date.now()));
+    closeSync(fd);
+    return true;
+  } catch {
+    // Stale-lock reclaim: if older than 2s, remove and retry once.
+    try {
+      const t = Number(readFileSync(LOCK, 'utf8'));
+      if (Number.isFinite(t) && Date.now() - t > 2000) { unlinkSync(LOCK); try { const fd = openSync(LOCK, 'wx'); writeFileSync(fd, String(Date.now())); closeSync(fd); return true; } catch { return false; } }
+    } catch {}
+    return false;
+  }
+}
+function releaseLock() { try { unlinkSync(LOCK); } catch { /* already gone */ } }
 
 export function recordOutcome(variantId, { success }) {
+  // Bounded retry: lock contention here is expected to be rare and short
+  // (two processes at most in lab mode). 50 tries x 20ms = 1s worst case,
+  // then we proceed unlocked rather than losing the outcome entirely.
+  for (let attempt = 0; attempt < 50; attempt++) {
+    if (acquireLock()) {
+      try {
+        const s = loadState(); // re-read INSIDE the lock — no lost updates
+        const cur = s[variantId] ?? { alpha: 1, beta: 1, pulls: 0, successes: 0 };
+        cur.pulls += 1;
+        if (success) cur.successes += 1;
+        cur.alpha = 1 + cur.successes;
+        cur.beta = 1 + (cur.pulls - cur.successes);
+        s[variantId] = cur;
+        writeFileSync(STATE, JSON.stringify(s, null, 2));
+        return cur;
+      } finally {
+        releaseLock();
+      }
+    }
+    // back off briefly before retrying
+    const until = Date.now() + 20;
+    while (Date.now() < until) { /* sync sleep */ }
+  }
+  // Fallback: unlocked write (pre-v0.2.1 behavior) — better a rare lost
+  // update than dropping the bandit signal.
   const s = loadState();
   const cur = s[variantId] ?? { alpha: 1, beta: 1, pulls: 0, successes: 0 };
   cur.pulls += 1;
   if (success) cur.successes += 1;
-  // Beta posterior: alpha = 1 + successes, beta = 1 + failures
   cur.alpha = 1 + cur.successes;
   cur.beta = 1 + (cur.pulls - cur.successes);
   s[variantId] = cur;
-  saveState(s);
+  writeFileSync(STATE, JSON.stringify(s, null, 2));
   return cur;
 }
 

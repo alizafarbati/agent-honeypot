@@ -4,6 +4,7 @@
 // event when a simulated credential fires (dimension 15 wiring).
 
 import { createServer } from 'node:http';
+import { createHmac, timingSafeEqual } from 'node:crypto';
 import { readFileSync, existsSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -17,6 +18,34 @@ const here = dirname(fileURLToPath(import.meta.url));
 const INDEX = resolve(here, 'public/index.html');
 ensureDataDir();
 const PORT = Number(process.env.AGENT_HONEYPOT_DASH_PORT ?? 9079);
+
+// ---- webhook hardening (F3) -------------------------------------------------
+// Canary webhooks are the only externally-writable endpoint on this server.
+// Unauthenticated, unbounded accepts would let anyone poison CREDENTIAL_USE
+// events (fabricated dim-15 evidence, tier inflation, disk exhaustion).
+// Auth model: optional shared-secret HMAC. When AGENT_HONEYPOT_WEBHOOK_SECRET
+// is set, requests must carry X-Honeypot-Signature: hex(HMAC_SHA256(body)).
+// Without the env var (lab mode) the endpoint stays open but is rate-limited
+// and size-capped so it cannot be used as a capture-poisoning amplifiers.
+const WEBHOOK_SECRET = process.env.AGENT_HONEYPOT_WEBHOOK_SECRET ?? null;
+const WEBHOOK_MAX_BODY = 64 * 1024;            // 64 KB is plenty for canary metadata
+const WEBHOOK_RATE_LIMIT = Number(process.env.AGENT_HONEYPOT_WEBHOOK_RATE ?? 60); // req/min per canary id
+const webhookBuckets = new Map(); // canaryId -> { count, windowStart }
+function webhookRateLimited(canaryId) {
+  const now = Date.now();
+  let b = webhookBuckets.get(canaryId);
+  if (!b || now - b.windowStart > 60_000) { b = { count: 0, windowStart: now }; webhookBuckets.set(canaryId, b); }
+  b.count += 1;
+  return b.count > WEBHOOK_RATE_LIMIT;
+}
+function webhookSignatureValid(rawBody, sigHeader) {
+  if (!WEBHOOK_SECRET) return true; // lab mode: no secret configured -> open but rate-limited
+  if (!sigHeader) return false;
+  const expected = createHmac('sha256', WEBHOOK_SECRET).update(rawBody).digest('hex');
+  const a = Buffer.from(String(sigHeader), 'utf8');
+  const b = Buffer.from(expected, 'utf8');
+  return a.length === b.length && timingSafeEqual(a, b);
+}
 
 function loadSessions() {
   if (!existsSync(PATHS.sessions)) return [];
@@ -52,13 +81,30 @@ export function createDashboard() {
       const canaryId = url.pathname.split('/webhook/')[1]?.split('/')[0];
       const known = CANARIES.find((c) => c.id === canaryId);
       if (!known) return json(404, { error: 'unknown canary id', known_ids: CANARIES.map((c) => c.id) });
+      if (webhookRateLimited(canaryId)) return json(429, { error: 'rate limit exceeded', retry_after_seconds: 60 });
       const body = [];
-      req.on('data', (chunk) => body.push(chunk));
+      let size = 0;
+      let aborted = false;
+      req.on('data', (chunk) => {
+        size += chunk.length;
+        if (size > WEBHOOK_MAX_BODY) {
+          aborted = true;
+          req.destroy(); // hard stop: never buffer unbounded payloads
+          return;
+        }
+        body.push(chunk);
+      });
       req.on('end', () => {
+        if (aborted) return; // connection already torn down
+        const raw = Buffer.concat(body);
+        if (!webhookSignatureValid(raw, req.headers['x-honeypot-signature'])) {
+          return json(401, { error: 'invalid or missing X-Honeypot-Signature (HMAC-SHA256 over raw body)' });
+        }
         let meta = {};
-        try { meta = JSON.parse(Buffer.concat(body).toString() || '{}'); } catch {}
+        try { meta = JSON.parse(raw.toString() || '{}'); } catch {}
         const ev = logCanaryUse({
           canaryId,
+          source: 'webhook',
           sessionId: meta.session_id ?? `webhook-${Date.now().toString(36)}`,
           tool: meta.tool ?? `webhook:${canaryId}`,
           privilegeLevel: 3,

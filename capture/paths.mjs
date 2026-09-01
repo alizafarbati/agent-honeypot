@@ -1,13 +1,27 @@
 // Shared filesystem paths. Single source of truth for all components.
 // Data lives under <repo>/data/ — never inside src or dist trees.
 
-import { mkdirSync } from 'node:fs';
+import { mkdirSync, existsSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-// Walk up from this module (capture/paths.mjs) to repo root.
+// Walk up from this module to the repo root (the nearest ancestor containing
+// package.json). This keeps a single data dir whether the module executes
+// from source (capture/paths.mjs) or from the compiled tree (dist/capture/
+// paths.mjs) — previously the compiled copy resolved ROOT to dist/ and
+// fragmented captures into dist/data/, invisible to the analysis pipeline.
 const here = dirname(fileURLToPath(import.meta.url));
-export const ROOT = resolve(here, '..');
+function findRoot() {
+  let dir = here;
+  for (let i = 0; i < 10; i++) {
+    if (existsSync(resolve(dir, 'package.json'))) return dir;
+    const parent = resolve(dir, '..');
+    if (parent === dir) break;
+    dir = parent;
+  }
+  return resolve(here, '..'); // fallback: pre-v0.2.1 behavior
+}
+export const ROOT = findRoot();
 
 // Override for deployments (e.g. container volume, tests).
 export const DATA_DIR = process.env.AGENT_HONEYPOT_DATA_DIR

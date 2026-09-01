@@ -48,12 +48,13 @@ describe('SECURITY: digest-only persistence', () => {
     // digest present instead
     const events = stored.trim().split('\n').map((l) => JSON.parse(l));
     for (const ev of events) {
-      assert.ok(ev.args_digest === null || /^[a-f0-9]{16}$/.test(ev.args_digest), 'digest must be 16-hex or null');
+      // full 64-hex SHA-256 (v0.2.1+); legacy 16-hex rows also tolerated
+      assert.ok(ev.args_digest === null || /^[a-f0-9]{16}$/.test(ev.args_digest) || /^[a-f0-9]{64}$/.test(ev.args_digest), 'digest must be 16-hex (legacy), 64-hex, or null');
     }
   });
 
   it('digests are stable (same input, same digest) and lossy (irreversible form)', () => {
-    const expected = createHash('sha256').update('abc').digest('hex').slice(0, 16);
+    const expected = createHash('sha256').update('abc').digest('hex'); // full 64-hex as of v0.2.1
     logCaptureEvent('TEST', { rawArgs: 'abc' });
     const lines = readFileSync(SESSIONS, 'utf8').trim().split('\n').map((l) => JSON.parse(l));
     const last = lines[lines.length - 1];

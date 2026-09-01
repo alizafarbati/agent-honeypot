@@ -80,7 +80,7 @@ describe('end-to-end: MCP honeypot server over stdio', () => {
     const call = evs.find((e) => e.tool === 'db_query' && e.event_type !== 'ERROR_429');
     assert.ok(call, 'db_query interaction captured');
     assert.equal(call.took_bait, true); // long context -> bait taken
-    assert.ok(call.args_digest?.length === 16, 'args stored as 16-hex digest, not raw');
+    assert.ok(call.args_digest?.length === 64, 'args stored as full 64-hex SHA-256 digest, not raw');
     assert.ok(!('rawArgs' in call), 'no raw argument text persisted');
     sessionId = call.session_id;
   });

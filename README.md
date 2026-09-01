@@ -560,8 +560,8 @@ then runs the analysis pipeline and prints tier / cluster / anomaly output.
 
 | Harness | Scenarios | Covers |
 |---|---|---|
-| `mega_test_suite.mjs` | 56 | every tool on both servers, all 4 canary credential types (AWS / GitHub / DB DSN / Slack), 40-char bait threshold boundary, 12-page pagination chains, L1→L2→L3 escalation chains, 5 parallel sessions, 20-call rapid-fire, 10KB contexts, unicode / SQL-injection / empty inputs, ~3% error-injection stress |
-| `deep_test.mjs` | 37 | benign vs disclosure contexts, exact 40/41-char threshold, credential disclosures in context and email bodies, SQL + UNION injection, SSH recon and canary-file reads, persistence tools, multi-page pagination, empty / max-length / unknown-command edges |
+| `mega_test_suite.mjs` | 56 | every tool on both servers, all 4 canary credential types (AWS / GitHub / DB DSN / Slack), bait-threshold band testing (below/above the per-session jitter window), 12-page pagination chains, L1→L2→L3 escalation chains, 5 parallel sessions, 20-call rapid-fire, 10KB contexts, unicode / SQL-injection / empty inputs, ~3% error-injection stress |
+| `deep_test.mjs` | 37 | benign vs disclosure contexts, far-below/far-above threshold, credential disclosures in context and email bodies, SQL + UNION injection, SSH recon and canary-file reads, persistence tools, multi-page pagination, empty / max-length / unknown-command edges |
 | `agent_simulation_test.mjs` | 13 | three agent personas — a malicious agent (recon → exfil → persistence → scheduled exfil), an autonomous HR-workflow agent, and a compliant benign agent — showing how the same servers score each profile differently |
 | `direct_mcp_test.mjs` | 6 | raw protocol sanity: listTools, tool call, synthetic response shapes on both servers |
 
@@ -657,8 +657,9 @@ tests/        5 suites, 47 tests
 
 - **Bait / lure** — a tool or document engineered to elicit a specific agent behavior (disclosure, persistence).
 - **Bait taken** — the agent provided the requested context/fields, crossing the capture threshold.
-- **Canary** — a uniquely-marked fake credential or string; use of it is proof of malicious execution. Ours are simulated and webhook-instrumented.
-- **Digest** — a fixed-length hash (SHA-256, truncated) standing in for raw text. Lets us count and correlate without storing content.
+- **Capture threshold** — the context-length boundary that marks bait-taking. As of v0.2.1 the boundary *jitters ±15% per session* (drawn once per server process around the documented mean, e.g. ~40 chars for `db_query`). Aggregate capture statistics are unchanged, but a probing agent cannot bisect the exact boundary across sessions — its calibration converges on noise.
+- **Canary** — a uniquely-marked fake credential or string; use of it is proof of malicious execution. Ours are simulated and webhook-instrumented. Matching is confusable-folded (fullwidth/homoglyph re-encodings of a canary still trip detection).
+- **Digest** — a fixed-length hash standing in for raw text (SHA-256, full 64-hex as of v0.2.1; legacy 16-hex rows remain readable). Lets us count and correlate without storing content.
 - **Escape** — a session that connected but never took the bait. The evolution engine's input.
 - **L1/L2/L3** — bait privilege-claim levels: note → system-level → harness-level (from When Context Gets Root).
 - **Shadow deployment** — a new lure variant serves only synthetic traffic silently, accumulating evidence before any human promotion decision.
