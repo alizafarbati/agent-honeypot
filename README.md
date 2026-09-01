@@ -14,7 +14,7 @@
   <img alt="platform" src="https://img.shields.io/badge/platform-win%20%7C%20linux%20%7C%20macos-lightgrey">
   <img alt="node" src="https://img.shields.io/badge/node-%3E%3D20-brightgreen">
   <a href="LICENSE"><img alt="license" src="https://img.shields.io/badge/license-MIT-blue"></a>
-  <img alt="tests" src="https://img.shields.io/badge/tests-57%2F57-brightgreen">
+  <img alt="tests" src="https://img.shields.io/badge/tests-169%2F169-brightgreen">
   <img alt="version" src="https://img.shields.io/badge/version-0.2.0-orange">
 </p>
 
@@ -120,7 +120,8 @@ git clone https://github.com/agent-honeypot/agent-honeypot.git
 cd agent-honeypot
 npm install
 npm run build
-npm test
+npm test          # 57 unit tests
+node tests/mega_test_suite.mjs   # +56 live protocol scenarios
 ```
 
 Expected output of the last command:
@@ -525,7 +526,7 @@ Multi-stage build (node:20-slim), health-checked, persistent volume for captures
 ## Testing
 
 ```bash
-npm test    # 57 tests, 7 suites, ~3 seconds
+npm test    # 57 tests, 7 suites, ~3 seconds (core, invariants, no live servers)
 ```
 
 | Suite | What it proves |
@@ -539,6 +540,45 @@ npm test    # 57 tests, 7 suites, ~3 seconds
 | `pipeline` | analyzeAll (tiers/clusters/anomalies/STIX), honeydoc generator (unique canaries, L1-L3 ladders), SSH shell trap (fake filesystem, canary on credentials read), stylometry (numeric-only, bounded) |
 
 CI runs the full matrix (Ubuntu + Windows × Node 20/22/24).
+
+### Live agent test suites
+
+Beyond the unit suites, the repo ships standalone live harnesses that drive
+**both honeypot MCP servers over the real MCP protocol** and exercise
+bait-taking, canary trips, escalation chains, and edge cases end to end:
+
+```bash
+node tests/mega_test_suite.mjs        # 56 scenarios across both servers
+node tests/deep_test.mjs              # 37 scenarios: injection, disclosure, persistence, pagination, edges
+node tests/agent_simulation_test.mjs   # 13 steps: ASSASSIN / autonomous / benign agent profiles
+node tests/direct_mcp_test.mjs         # 6 scenarios: raw MCP protocol verification
+```
+
+Run `npm run build` first — the harnesses spawn the built servers over stdio.
+Each run appends real capture events to `data/sessions.jsonl` (digest-only),
+then runs the analysis pipeline and prints tier / cluster / anomaly output.
+
+| Harness | Scenarios | Covers |
+|---|---|---|
+| `mega_test_suite.mjs` | 56 | every tool on both servers, all 4 canary credential types (AWS / GitHub / DB DSN / Slack), 40-char bait threshold boundary, 12-page pagination chains, L1→L2→L3 escalation chains, 5 parallel sessions, 20-call rapid-fire, 10KB contexts, unicode / SQL-injection / empty inputs, ~3% error-injection stress |
+| `deep_test.mjs` | 37 | benign vs disclosure contexts, exact 40/41-char threshold, credential disclosures in context and email bodies, SQL + UNION injection, SSH recon and canary-file reads, persistence tools, multi-page pagination, empty / max-length / unknown-command edges |
+| `agent_simulation_test.mjs` | 13 | three agent personas — a malicious agent (recon → exfil → persistence → scheduled exfil), an autonomous HR-workflow agent, and a compliant benign agent — showing how the same servers score each profile differently |
+| `direct_mcp_test.mjs` | 6 | raw protocol sanity: listTools, tool call, synthetic response shapes on both servers |
+
+Latest full run: **112/112 scenarios passed**, producing 110 sessions,
+319 capture events, 12 high-tier sessions, 16 canary trips, 12 STIX bundles,
+and 43 distinct actor clusters — every alert tier (low/medium/high) exercised.
+
+All sample credentials in these harnesses are synthetic placeholders
+(they match canary patterns on purpose — that is what trips detection).
+
+### Wiring the honeypot to a real agent client
+
+See `tests/INTEGRATION_GUIDE.md` for drop-in MCP config snippets for
+Claude Desktop, ASSASSIN, OpenClaw, and any stdio MCP client.
+`tests/openclaw_honeypot_test.mjs` and `tests/opencode_honeypot_test.mjs`
+drive a real agent CLI against the servers when installed
+(`OPENCLAW_BIN` / `OPENCODE_BIN` env vars override the binary path).
 
 ## Troubleshooting
 

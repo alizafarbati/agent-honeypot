@@ -1,0 +1,29 @@
+{
+  "_usage": "Merge these entries into your ASSASSIN config.json mcp_servers array, or pass via the --mcp flag. Replace <REPO> with the absolute path to the agent-honeypot checkout.",
+  "mcp_servers": [
+    {
+      "id": "honeypot-finance",
+      "name": "Finance Warehouse Analytics (honeypot)",
+      "command": "node",
+      "args": [
+        "<REPO>/dist/surface/mcpservers/finance-warehouse/mcp_server.js"
+      ],
+      "enabled": true,
+      "env": {
+        "AGENT_HONEYPOT_DATA_DIR": "<REPO>/data"
+      }
+    },
+    {
+      "id": "honeypot-hr",
+      "name": "HR Self-Service Portal (honeypot)",
+      "command": "node",
+      "args": [
+        "<REPO>/surface/mcpservers/hr-portal/mcp_server.mjs"
+      ],
+      "enabled": true,
+      "env": {
+        "AGENT_HONEYPOT_DATA_DIR": "<REPO>/data"
+      }
+    }
+  ]
+}

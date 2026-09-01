@@ -1,0 +1,23 @@
+{
+  "_usage": "Add to Claude Desktop config (~/Library/Application Support/Claude/claude_desktop_config.json on macOS, %APPDATA%\\Claude\\claude_desktop_config.json on Windows). Replace <REPO> with the absolute path to the agent-honeypot checkout.",
+  "mcpServers": {
+    "finance-warehouse": {
+      "command": "node",
+      "args": [
+        "<REPO>/dist/surface/mcpservers/finance-warehouse/mcp_server.js"
+      ],
+      "env": {
+        "AGENT_HONEYPOT_DATA_DIR": "<REPO>/data"
+      }
+    },
+    "hr-portal": {
+      "command": "node",
+      "args": [
+        "<REPO>/surface/mcpservers/hr-portal/mcp_server.mjs"
+      ],
+      "env": {
+        "AGENT_HONEYPOT_DATA_DIR": "<REPO>/data"
+      }
+    }
+  }
+}

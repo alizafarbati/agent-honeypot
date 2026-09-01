@@ -32,7 +32,7 @@ describe('SECURITY: digest-only persistence', () => {
   const SECRET_PHRASES = [
     'sk-PROTOTYPE-DO-NOT-USE-12345',
     'password=hunter2',
-    'aws_secret_access_key = AKIAIOSFODNN7EXAMPLE',
+    'aws_secret_access_key = AKIAIOSFODNN7EXAMPLE000',
     'BEGIN RSA PRIVATE KEY',
     "admin' OR '1'='1",
   ];
