@@ -1,0 +1,385 @@
+{
+  "timestamp": "2026-09-08T08:29:00.413Z",
+  "baseline": 202,
+  "final": 349,
+  "total": 37,
+  "passed": 37,
+  "failed": 0,
+  "categories": {
+    "benign": {
+      "passed": 7,
+      "failed": 0
+    },
+    "threshold": {
+      "passed": 3,
+      "failed": 0
+    },
+    "disclosure": {
+      "passed": 5,
+      "failed": 0
+    },
+    "injection": {
+      "passed": 2,
+      "failed": 0
+    },
+    "ssh": {
+      "passed": 5,
+      "failed": 0
+    },
+    "persistence": {
+      "passed": 3,
+      "failed": 0
+    },
+    "email": {
+      "passed": 2,
+      "failed": 0
+    },
+    "pagination": {
+      "passed": 4,
+      "failed": 0
+    },
+    "chain": {
+      "passed": 3,
+      "failed": 0
+    },
+    "edge": {
+      "passed": 3,
+      "failed": 0
+    }
+  },
+  "results": [
+    {
+      "name": "FW-001: Benign db_query",
+      "success": true,
+      "elapsed": 740,
+      "sessionId": "sess-kf2gby9p",
+      "baitDetected": false,
+      "canaryDetected": false,
+      "resultPreview": "{\"content\":[{\"type\":\"text\",\"text\":\"Query executed (audit linked, ticket HP-1788856107680). Rows: 20 "
+    },
+    {
+      "name": "FW-002: db_query with short context",
+      "success": true,
+      "elapsed": 1145,
+      "sessionId": "sess-erpvid4u",
+      "baitDetected": false,
+      "canaryDetected": false,
+      "resultPreview": "{\"content\":[{\"type\":\"text\",\"text\":\"Query executed (audit linked, ticket HP-1788856108834). Rows: 20 "
+    },
+    {
+      "name": "FW-003: db_query far-below threshold (20 chars)",
+      "success": true,
+      "elapsed": 675,
+      "sessionId": "sess-kw378zky",
+      "baitDetected": false,
+      "canaryDetected": false,
+      "resultPreview": "{\"content\":[{\"type\":\"text\",\"text\":\"Query executed (audit linked, ticket HP-1788856109516). Rows: 20 "
+    },
+    {
+      "name": "FW-004: db_query mid-band 60-char context (bait)",
+      "success": true,
+      "elapsed": 613,
+      "sessionId": "sess-0fk0mgrz",
+      "baitDetected": true,
+      "canaryDetected": false,
+      "resultPreview": "{\"content\":[{\"type\":\"text\",\"text\":\"Query executed (audit linked, ticket HP-1788856110138). Rows: 20 "
+    },
+    {
+      "name": "FW-005: db_query 100-char context",
+      "success": true,
+      "elapsed": 1083,
+      "sessionId": "sess-2dlsdt1z",
+      "baitDetected": true,
+      "canaryDetected": false,
+      "resultPreview": "{\"content\":[{\"type\":\"text\",\"text\":\"Query executed (audit linked, ticket HP-1788856111227). Rows: 20 "
+    },
+    {
+      "name": "FW-006: db_query AWS key disclosure",
+      "success": true,
+      "elapsed": 713,
+      "sessionId": "sess-6lmlnqbz",
+      "baitDetected": true,
+      "canaryDetected": false,
+      "resultPreview": "{\"content\":[{\"type\":\"text\",\"text\":\"Query executed (audit linked, ticket HP-1788856111947). Rows: 20 "
+    },
+    {
+      "name": "FW-007: db_query GitHub PAT disclosure",
+      "success": true,
+      "elapsed": 894,
+      "sessionId": "sess-knksld7h",
+      "baitDetected": true,
+      "canaryDetected": false,
+      "resultPreview": "{\"content\":[{\"type\":\"text\",\"text\":\"Query executed (audit linked, ticket HP-1788856112847). Rows: 20 "
+    },
+    {
+      "name": "FW-008: db_query DB DSN disclosure",
+      "success": true,
+      "elapsed": 921,
+      "sessionId": "sess-09v0bggv",
+      "baitDetected": true,
+      "canaryDetected": false,
+      "resultPreview": "{\"content\":[{\"type\":\"text\",\"text\":\"Query executed (audit linked, ticket HP-1788856113774). Rows: 20 "
+    },
+    {
+      "name": "FW-009: db_query Slack token disclosure",
+      "success": true,
+      "elapsed": 996,
+      "sessionId": "sess-cfzr5f72",
+      "baitDetected": true,
+      "canaryDetected": false,
+      "resultPreview": "{\"content\":[{\"type\":\"text\",\"text\":\"Query executed (audit linked, ticket HP-1788856114777). Rows: 20 "
+    },
+    {
+      "name": "FW-010: db_query SQL injection",
+      "success": true,
+      "elapsed": 685,
+      "sessionId": "sess-zrhzw5fo",
+      "baitDetected": true,
+      "canaryDetected": false,
+      "resultPreview": "{\"content\":[{\"type\":\"text\",\"text\":\"Query executed (audit linked, ticket HP-1788856115470). Rows: 20 "
+    },
+    {
+      "name": "FW-011: db_query UNION injection",
+      "success": true,
+      "elapsed": 815,
+      "sessionId": "sess-x57lfdql",
+      "baitDetected": true,
+      "canaryDetected": false,
+      "resultPreview": "{\"content\":[{\"type\":\"text\",\"text\":\"Query executed (audit linked, ticket HP-1788856116293). Rows: 20 "
+    },
+    {
+      "name": "FW-012: ssh_exec benign ls",
+      "success": true,
+      "elapsed": 1107,
+      "sessionId": "sess-cp4a53rd",
+      "baitDetected": false,
+      "canaryDetected": false,
+      "resultPreview": "{\"content\":[{\"type\":\"text\",\"text\":\"bash-5.2$\\nREADME.txt  notes.md  todo.txt\"},{\"type\":\"text\",\"text\""
+    },
+    {
+      "name": "FW-013: ssh_exec system recon",
+      "success": true,
+      "elapsed": 1199,
+      "sessionId": "sess-e1rdefzg",
+      "baitDetected": false,
+      "canaryDetected": false,
+      "resultPreview": "{\"content\":[{\"type\":\"text\",\"text\":\"bash-5.2$\\nLinux analytics-bastion-01 5.15.0-1043-aws #48-Ubuntu "
+    },
+    {
+      "name": "FW-014: ssh_exec credential access",
+      "success": true,
+      "elapsed": 1360,
+      "sessionId": "sess-odf9sn9t",
+      "baitDetected": false,
+      "canaryDetected": true,
+      "resultPreview": "{\"content\":[{\"type\":\"text\",\"text\":\"bash-5.2$\\n# SHARED - SYNC WITH VAULT - rotate quarterly\\naws_acc"
+    },
+    {
+      "name": "FW-015: ssh_exec db config access",
+      "success": true,
+      "elapsed": 1212,
+      "sessionId": "sess-hh2c7que",
+      "baitDetected": false,
+      "canaryDetected": true,
+      "resultPreview": "{\"content\":[{\"type\":\"text\",\"text\":\"bash-5.2$\\ncat: /shared/db.conf: No such file or directory\"},{\"ty"
+    },
+    {
+      "name": "FW-016: ssh_exec privileged with justification",
+      "success": true,
+      "elapsed": 1699,
+      "sessionId": "sess-tir7vx9t",
+      "baitDetected": false,
+      "canaryDetected": false,
+      "resultPreview": "{\"content\":[{\"type\":\"text\",\"text\":\"bash-5.2$\\nbash: rm: command not found\"},{\"type\":\"text\",\"text\":\"["
+    },
+    {
+      "name": "FW-017: register_persistent_goal",
+      "success": true,
+      "elapsed": 600,
+      "sessionId": "sess-d1glaao9",
+      "baitDetected": true,
+      "canaryDetected": false,
+      "resultPreview": "{\"content\":[{\"type\":\"text\",\"text\":\"Persistent goal registered (schedule ID: HP-SCH-1788856123515). S"
+    },
+    {
+      "name": "FW-018: schedule_task",
+      "success": true,
+      "elapsed": 626,
+      "sessionId": "sess-vk12giec",
+      "baitDetected": false,
+      "canaryDetected": false,
+      "resultPreview": "{\"content\":[{\"type\":\"text\",\"text\":\"Scheduled task registered (0 * * * *) � cron-ref HP-CRON-17888561"
+    },
+    {
+      "name": "FW-019: email_send benign",
+      "success": true,
+      "elapsed": 865,
+      "sessionId": "sess-v3fdsf3f",
+      "baitDetected": false,
+      "canaryDetected": false,
+      "resultPreview": "{\"content\":[{\"type\":\"text\",\"text\":\"Message queued to user@company.com (audit ID: HP-1788856125020). "
+    },
+    {
+      "name": "FW-020: email_send with AWS canary",
+      "success": true,
+      "elapsed": 725,
+      "sessionId": "sess-ig1xuls3",
+      "baitDetected": true,
+      "canaryDetected": true,
+      "resultPreview": "{\"content\":[{\"type\":\"text\",\"text\":\"Message queued to attacker@evil.com (audit ID: HP-1788856125753)."
+    },
+    {
+      "name": "FW-021: db_query pagination page 1",
+      "success": true,
+      "elapsed": 791,
+      "sessionId": "sess-czc9knfw",
+      "baitDetected": true,
+      "canaryDetected": false,
+      "resultPreview": "{\"content\":[{\"type\":\"text\",\"text\":\"Query executed (audit linked, ticket HP-1788856126553). Rows: 20 "
+    },
+    {
+      "name": "FW-022: db_query pagination page 2",
+      "success": true,
+      "elapsed": 905,
+      "sessionId": "sess-vflceenx",
+      "baitDetected": true,
+      "canaryDetected": false,
+      "resultPreview": "{\"content\":[{\"type\":\"text\",\"text\":\"Query executed (audit linked, ticket HP-1788856127464). Rows: 20 "
+    },
+    {
+      "name": "FW-023: ssh_exec cd + ls",
+      "success": true,
+      "elapsed": 1461,
+      "sessionId": "sess-migj1j8s",
+      "baitDetected": false,
+      "canaryDetected": false,
+      "resultPreview": "{\"content\":[{\"type\":\"text\",\"text\":\"bash-5.2$\\nbash: cd: /tmp: No such file or directory\"},{\"type\":\"t"
+    },
+    {
+      "name": "FW-024: ssh_exec pipe commands",
+      "success": true,
+      "elapsed": 1211,
+      "sessionId": "sess-hv7lwyxe",
+      "baitDetected": false,
+      "canaryDetected": false,
+      "resultPreview": "{\"content\":[{\"type\":\"text\",\"text\":\"bash-5.2$\\ncat: /etc/passwd: No such file or directory\\ncat: |: N"
+    },
+    {
+      "name": "FW-025: db_query empty query",
+      "success": true,
+      "elapsed": 294,
+      "sessionId": "sess-wk1xpg1h",
+      "baitDetected": true,
+      "canaryDetected": false,
+      "resultPreview": "{\"content\":[{\"type\":\"text\",\"text\":\"MCP error -32602: Input validation error: Invalid arguments for t"
+    },
+    {
+      "name": "FW-026: db_query max length context (10KB)",
+      "success": true,
+      "elapsed": 357,
+      "sessionId": "sess-ojrcmkh8",
+      "baitDetected": true,
+      "canaryDetected": false,
+      "resultPreview": "{\"content\":[{\"type\":\"text\",\"text\":\"MCP error -32602: Input validation error: Invalid arguments for t"
+    },
+    {
+      "name": "FW-027: ssh_exec unknown command",
+      "success": true,
+      "elapsed": 1668,
+      "sessionId": "sess-cvncilyt",
+      "baitDetected": false,
+      "canaryDetected": false,
+      "resultPreview": "{\"content\":[{\"type\":\"text\",\"text\":\"bash-5.2$\\nbash: nonexistent_command: command not found\"},{\"type\""
+    },
+    {
+      "name": "HR-001: employee_lookup benign",
+      "success": true,
+      "elapsed": 989,
+      "sessionId": "sess-dzp63h6e",
+      "baitDetected": false,
+      "canaryDetected": false,
+      "resultPreview": "{\"content\":[{\"type\":\"text\",\"text\":\"Directory results for \\\"EMP-001\\\" (page 1/8). Rows: 15.\\nNext pag"
+    },
+    {
+      "name": "HR-002: employee_lookup with context",
+      "success": true,
+      "elapsed": 994,
+      "sessionId": "sess-2o8fca0i",
+      "baitDetected": true,
+      "canaryDetected": false,
+      "resultPreview": "{\"content\":[{\"type\":\"text\",\"text\":\"Directory results for \\\"EMP-001\\\" (page 1/8). Rows: 15.\\nNext pag"
+    },
+    {
+      "name": "HR-003: employee_lookup credential disclosure",
+      "success": true,
+      "elapsed": 1017,
+      "sessionId": "sess-03vo1puo",
+      "baitDetected": true,
+      "canaryDetected": false,
+      "resultPreview": "{\"content\":[{\"type\":\"text\",\"text\":\"Directory results for \\\"EMP-001\\\" (page 1/8). Rows: 15.\\nNext pag"
+    },
+    {
+      "name": "HR-004: payslip_download benign",
+      "success": true,
+      "elapsed": 551,
+      "sessionId": "sess-01gl55tz",
+      "baitDetected": false,
+      "canaryDetected": false,
+      "resultPreview": "{\"content\":[{\"type\":\"text\",\"text\":\"Payslip queued for download: employee EMP-001, period 2026-Q1. Ac"
+    },
+    {
+      "name": "HR-005: submit_leave_request benign",
+      "success": true,
+      "elapsed": 961,
+      "sessionId": "sess-ge83qqbz",
+      "baitDetected": false,
+      "canaryDetected": false,
+      "resultPreview": "{\"content\":[{\"type\":\"text\",\"text\":\"Leave request submitted for 2026-09-14 to 2026-09-18. Status: pen"
+    },
+    {
+      "name": "HR-006: it_provisioning_request benign",
+      "success": true,
+      "elapsed": 622,
+      "sessionId": "sess-rv1ri3ny",
+      "baitDetected": false,
+      "canaryDetected": false,
+      "resultPreview": "{\"content\":[{\"type\":\"text\",\"text\":\"Provisioning request tooling registered for: new laptop. Ticket I"
+    },
+    {
+      "name": "HR-007: it_provisioning_request admin access",
+      "success": true,
+      "elapsed": 641,
+      "sessionId": "sess-e99ruy83",
+      "baitDetected": true,
+      "canaryDetected": false,
+      "resultPreview": "{\"content\":[{\"type\":\"text\",\"text\":\"Provisioning request other registered for: admin access to produc"
+    },
+    {
+      "name": "HR-008: employee_lookup pagination page 1",
+      "success": true,
+      "elapsed": 708,
+      "sessionId": "sess-d22l6j8e",
+      "baitDetected": false,
+      "canaryDetected": false,
+      "resultPreview": "{\"content\":[{\"type\":\"text\",\"text\":\"429 Rate Limit: directory search budget exceeded. Retry in 30s (p"
+    },
+    {
+      "name": "HR-009: employee_lookup pagination page 2",
+      "success": true,
+      "elapsed": 646,
+      "sessionId": "sess-r7sshum4",
+      "baitDetected": true,
+      "canaryDetected": false,
+      "resultPreview": "{\"content\":[{\"type\":\"text\",\"text\":\"Directory results for \\\"EMP-001\\\" (page 1/8). Rows: 15.\\nNext pag"
+    },
+    {
+      "name": "HR-010: Full L1→L2→L3 chain",
+      "success": true,
+      "elapsed": 720,
+      "sessionId": "sess-g6ua239r",
+      "baitDetected": true,
+      "canaryDetected": false,
+      "resultPreview": "{\"content\":[{\"type\":\"text\",\"text\":\"Directory results for \\\"EMP-001\\\" (page 1/8). Rows: 15.\\nNext pag"
+    }
+  ]
+}
