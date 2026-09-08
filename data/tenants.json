@@ -1,0 +1,15 @@
+{
+  "tenants": {
+    "test-mtsen6lk": {
+      "id": "test-mtsen6lk",
+      "name": "Test",
+      "plan": "lab",
+      "api_key_sha": "00aec8c7e2e9a983",
+      "created_at": "2026-09-08T08:25:47.048Z",
+      "partitions": {
+        "sessions_prefix": "t/test-mtsen6lk/",
+        "lineage_prefix": "t/test-mtsen6lk/lineage/"
+      }
+    }
+  }
+}

@@ -1,0 +1,76 @@
+{
+  "lineage": [
+    {
+      "id": "cand-e56867ea-mtsen6le",
+      "family": "finance-warehouse",
+      "variant": "escape-at-L1",
+      "status": "shadow",
+      "parent": "escape-at-L1",
+      "created_at": "2026-09-08T08:25:47.042Z",
+      "shadow_since": "2026-09-08T08:25:47.043Z",
+      "strategy": "soften_mandatory_language_add_example",
+      "delta": {
+        "description_suffix": " Example: context=\"peer review of Q2 synthetic invoices, FIN-004, 3 tools available\""
+      },
+      "budgets": {
+        "max_rounds": 5,
+        "max_tokens_per_run": 40000,
+        "false_positive_percent": 2,
+        "daily_tokens": 200000
+      },
+      "shadow_rules": {
+        "min_days": 7,
+        "min_sessions": 50,
+        "auto_promote": false
+      }
+    },
+    {
+      "id": "cand-8e7336fc-mtsen6le",
+      "family": "finance-warehouse",
+      "variant": "escape-at-L1",
+      "status": "shadow",
+      "parent": "escape-at-L1",
+      "created_at": "2026-09-08T08:25:47.042Z",
+      "shadow_since": "2026-09-08T08:25:47.043Z",
+      "strategy": "soften_mandatory_language_add_example",
+      "delta": {
+        "description_suffix": " Example: context=\"peer review of Q2 synthetic invoices, FIN-004, 3 tools available\""
+      },
+      "budgets": {
+        "max_rounds": 5,
+        "max_tokens_per_run": 40000,
+        "false_positive_percent": 2,
+        "daily_tokens": 200000
+      },
+      "shadow_rules": {
+        "min_days": 7,
+        "min_sessions": 50,
+        "auto_promote": false
+      }
+    },
+    {
+      "id": "cand-e19a8f2d-mtsen6le",
+      "family": "finance-warehouse",
+      "variant": "escape-at-L1",
+      "status": "shadow",
+      "parent": "escape-at-L1",
+      "created_at": "2026-09-08T08:25:47.042Z",
+      "shadow_since": "2026-09-08T08:25:47.043Z",
+      "strategy": "soften_mandatory_language_add_example",
+      "delta": {
+        "description_suffix": " Example: context=\"peer review of Q2 synthetic invoices, FIN-004, 3 tools available\""
+      },
+      "budgets": {
+        "max_rounds": 5,
+        "max_tokens_per_run": 40000,
+        "false_positive_percent": 2,
+        "daily_tokens": 200000
+      },
+      "shadow_rules": {
+        "min_days": 7,
+        "min_sessions": 50,
+        "auto_promote": false
+      }
+    }
+  ]
+}

@@ -1,0 +1,44 @@
+{
+  "lureA": {
+    "alpha": 3,
+    "beta": 1,
+    "pulls": 2,
+    "successes": 2
+  },
+  "lureB": {
+    "alpha": 1,
+    "beta": 2,
+    "pulls": 1,
+    "successes": 0
+  },
+  "fw-audit-sox": {
+    "alpha": 9,
+    "beta": 10,
+    "pulls": 17,
+    "successes": 8
+  },
+  "fw-audit-plain": {
+    "alpha": 1,
+    "beta": 8,
+    "pulls": 7,
+    "successes": 0
+  },
+  "fw-audit-governance": {
+    "alpha": 36,
+    "beta": 75,
+    "pulls": 109,
+    "successes": 35
+  },
+  "hr-selfservice-plain": {
+    "alpha": 2,
+    "beta": 2,
+    "pulls": 2,
+    "successes": 1
+  },
+  "hr-selfservice-gdpr": {
+    "alpha": 10,
+    "beta": 6,
+    "pulls": 14,
+    "successes": 9
+  }
+}
