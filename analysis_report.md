@@ -36,3 +36,22 @@ The security guarantees of the architecture were verified via the test suite (`n
 - **Audit Ledger Integrity:** The tampered-evident ledger properly detects and identifies any unauthorized changes.
 - **Per-tenant Schema Isolation:** Validated.
 - **Human Promotion Gate:** Automatic promotion to "live" is blocked; the system enforces human approval before rotating the deception surface.
+
+## 5. Deployment and Production Readiness
+The `agent-honeypot` repository supports different deployment tiers based on the volume and operational requirement:
+
+- **Lab Tier (Default):** `<100 sessions/day`. All data is logged in a local `data/` directory using JSONL. Suitable for local testing and research out-of-the-box (no external dependencies).
+- **Docker Tier:** `<1k sessions/day`. Launchable via a single `docker compose up -d` command using a multi-stage Dockerfile based on `node:20-slim`. It uses a persistent volume for the captured data. A NATS sidecar can optionally be uncommented for the message bus.
+- **Enterprise Tier:** `10k–1M sessions/day`. This tier scales horizontally and introduces robust infrastructure requirements:
+  - **Message Bus:** NATS JetStream (configurable via `AGENT_HONEYPOT_NATS_URL`) replaces the fallback JSON file.
+  - **Data Stores:** Requires `ClickHouse` for event logging and `pgvector` for actor clustering and anomaly scanning.
+  - **Network and Auth Policies:** Handled via Terraform/Helm configurations (deny-all NetworkPolicy, restricted Pod Security Standards, Vault policies).
+- **Edge Tier:** `>1M sessions/day`. Pushes the initial engagement to the network edge utilizing Cloudflare Workers (`infra/cloudflare`) and stores digest-only captures in R2 object storage. Deployed via `wrangler deploy`.
+
+To make the system fully production-ready (at the Enterprise Tier or above):
+1. Compile the server locally via `npm run build` or rely on the Docker multi-stage build.
+2. Provide valid connection URLs for external services through environment variables such as:
+   - `AGENT_HONEYPOT_NATS_URL`
+   - `AGENT_HONEYPOT_SIEM_URL` and `AGENT_HONEYPOT_SIEM_TOKEN` (for STIX events to a SIEM)
+   - `OTEL_EXPORTER_OTLP_ENDPOINT` (for telemetry)
+3. Do not blindly expose the honeypot on public interfaces without edge termination or proper networking controls, ensuring it maintains its fundamental Zero Egress property.

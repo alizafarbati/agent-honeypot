@@ -10,6 +10,17 @@
         "sessions_prefix": "t/test-mtsen6lk/",
         "lineage_prefix": "t/test-mtsen6lk/lineage/"
       }
+    },
+    "test-mv3trpyc": {
+      "id": "test-mv3trpyc",
+      "name": "Test",
+      "plan": "lab",
+      "api_key_sha": "d348fda7bf32a8c2",
+      "created_at": "2026-10-11T12:54:23.269Z",
+      "partitions": {
+        "sessions_prefix": "t/test-mv3trpyc/",
+        "lineage_prefix": "t/test-mv3trpyc/lineage/"
+      }
     }
   }
 }
